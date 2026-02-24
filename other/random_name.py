@@ -18,7 +18,10 @@ def randomize_item_textures():
     item_texture_path = "staging/target/rp/textures/item_texture.json"
     
     if not os.path.exists(item_texture_path):
+        print(f"[DEBUG] Không tìm thấy {item_texture_path}")
         return
+    
+    print("[DEBUG] Bắt đầu randomize_item_textures()")
     
     # Đọc item_texture.json
     with open(item_texture_path, 'r', encoding='utf-8') as f:
@@ -27,6 +30,8 @@ def randomize_item_textures():
     texture_data = item_texture_data.get("texture_data", {})
     path_mapping = {}
     folder_mapping = {}
+    
+    print(f"[DEBUG] Tìm thấy {len(texture_data)} textures")
     
     # Bước 1: Thu thập tất cả đường dẫn và tạo mapping cho thư mục
     all_folders = set()
@@ -52,7 +57,10 @@ def randomize_item_textures():
         new_name = random_short_name()
         folder_mapping[folder] = new_name
     
+    print(f"[DEBUG] Sẽ rename {len(folder_mapping)} thư mục")
+    
     # Bước 2: Rename thư mục
+    renamed_folders = 0
     for old_folder in sorted_folders:
         old_path = "staging/target/rp/textures/" + old_folder
         
@@ -69,8 +77,12 @@ def randomize_item_textures():
             os.makedirs(parent_dir, exist_ok=True)
         
         shutil.move(old_path, new_path)
+        renamed_folders += 1
+    
+    print(f"[DEBUG] Đã rename {renamed_folders} thư mục")
     
     # Bước 3: Random tên file và tạo path mapping
+    renamed_files = 0
     for key, value in texture_data.items():
         texture_path = value.get("textures", "")
         if not texture_path.startswith("textures/"):
@@ -101,17 +113,22 @@ def randomize_item_textures():
         
         if os.path.exists(old_png):
             shutil.move(old_png, new_png)
+            renamed_files += 1
         
         old_path = texture_path
         new_path = "textures/" + "/".join(new_parts)
         path_mapping[old_path] = new_path
         texture_data[key]["textures"] = new_path
     
+    print(f"[DEBUG] Đã rename {renamed_files} file PNG")
+    
     # Bước 4: Cập nhật attachables
     attachables_dir = "staging/target/rp/attachables"
+    updated_count = 0
     
     if os.path.exists(attachables_dir):
         json_files = list(glob.glob(f"{attachables_dir}/**/*.json", recursive=True))
+        print(f"[DEBUG] Tìm thấy {len(json_files)} attachable JSON")
         
         for json_file in json_files:
             with open(json_file, 'r', encoding='utf-8') as jf:
@@ -131,10 +148,15 @@ def randomize_item_textures():
             if updated:
                 with open(json_file, 'w', encoding='utf-8') as jf:
                     json.dump(attachable_data, jf, ensure_ascii=False, indent=0)
+                updated_count += 1
+        
+        print(f"[DEBUG] Đã cập nhật {updated_count} attachable JSON")
     
     # Bước 5: Ghi lại item_texture.json
     with open(item_texture_path, 'w', encoding='utf-8') as f:
         json.dump(item_texture_data, f, ensure_ascii=False, indent=0)
+    
+    print("[DEBUG] Hoàn thành randomize_item_textures()")
 
 def random_folder_name():
     """Tạo tên random 15 ký tự chữ cái in thường và số cho thư mục"""
@@ -142,6 +164,8 @@ def random_folder_name():
 
 def rename_json_files():
     """Random tên tất cả file JSON trong attachables, animations, models/entity"""
+    print("[DEBUG] Bắt đầu rename_json_files()")
+    
     directories = [
         "staging/target/rp/attachables",
         "staging/target/rp/animations", 
@@ -153,7 +177,10 @@ def rename_json_files():
     for directory in directories:
         if os.path.exists(directory):
             # Random tên file JSON
-            for json_file in glob.glob(f"{directory}/**/*.json", recursive=True):
+            json_files = list(glob.glob(f"{directory}/**/*.json", recursive=True))
+            print(f"[DEBUG] Rename {len(json_files)} JSON files trong {directory}")
+            
+            for json_file in json_files:
                 dir_path = os.path.dirname(json_file)
                 new_name = f"{random_name()}.json"
                 new_path = os.path.join(dir_path, new_name)
@@ -161,11 +188,18 @@ def rename_json_files():
             
             # Random tên thư mục con (chỉ với attachables và models/entity)
             if directory in ["staging/target/rp/attachables", "staging/target/rp/models/entity"]:
+                folders = []
                 for root, dirs, files in os.walk(directory, topdown=False):
                     for dir_name in dirs:
-                        old_dir_path = os.path.join(root, dir_name)
-                        new_dir_path = os.path.join(root, random_folder_name())
-                        os.rename(old_dir_path, new_dir_path)
+                        folders.append(os.path.join(root, dir_name))
+                
+                print(f"[DEBUG] Rename {len(folders)} thư mục trong {directory}")
+                
+                for old_dir_path in folders:
+                    new_dir_path = os.path.join(os.path.dirname(old_dir_path), random_folder_name())
+                    os.rename(old_dir_path, new_dir_path)
+    
+    print("[DEBUG] Hoàn thành rename_json_files()")
 
 if __name__ == "__main__":
     randomize_item_textures()
