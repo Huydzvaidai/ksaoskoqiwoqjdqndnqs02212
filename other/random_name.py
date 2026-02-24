@@ -3,6 +3,7 @@ import random
 import string
 import glob
 import json
+import shutil
 
 def random_name():
     """Tạo tên random 70 ký tự chữ cái in thường và số xen kẽ"""
@@ -76,7 +77,7 @@ def randomize_item_textures():
         if not os.path.exists(parent_dir):
             os.makedirs(parent_dir, exist_ok=True)
         
-        os.rename(old_path, new_path)
+        shutil.move(old_path, new_path)
         print(f"   ✓ {old_folder} → {new_folder}")
     
     # Bước 3: Random tên file và tạo path mapping
@@ -114,7 +115,7 @@ def randomize_item_textures():
         new_png = os.path.join(old_file_path, new_filename + ".png")
         
         if os.path.exists(old_png):
-            os.rename(old_png, new_png)
+            shutil.move(old_png, new_png)
             print(f"   ✓ {old_filename}.png → {new_filename}.png")
         
         # Lưu mapping
@@ -196,5 +197,5 @@ def rename_json_files():
                         os.rename(old_dir_path, new_dir_path)
 
 if __name__ == "__main__":
-    randomize_item_textures()  # Chạy đầu tiên
+    randomize_item_textures()
     rename_json_files()
