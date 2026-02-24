@@ -121,7 +121,6 @@ try:
 except Exception as e: 
     pass
 
-# Chạy random_name.py cuối cùng nếu được bật
 try:
     other_conversion = os.getenv("OTHER_CONVERSION", "")
     if "turn on all" in other_conversion.lower() or "Turn on all" in other_conversion or \
@@ -129,10 +128,6 @@ try:
         import sys
         sys.stdout.flush()
         sys.stderr.flush()
-        print("\n" + "="*50)
-        print("RANDOM NAME - CHẠY CUỐI CÙNG")
-        print("="*50 + "\n")
-        sys.stdout.flush()
         result = subprocess.run(["python", "other/random_name.py"])
 except Exception as e: 
     pass
