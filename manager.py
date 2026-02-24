@@ -126,10 +126,14 @@ try:
     other_conversion = os.getenv("OTHER_CONVERSION", "")
     if "turn on all" in other_conversion.lower() or "Turn on all" in other_conversion or \
        "random name json" in other_conversion.lower() or "Random name json" in other_conversion:
+        import sys
+        sys.stdout.flush()
+        sys.stderr.flush()
         print("\n" + "="*50)
         print("RANDOM NAME - CHẠY CUỐI CÙNG")
         print("="*50 + "\n")
-        result = subprocess.run(["python", "other/random_name.py"], text=True)
+        sys.stdout.flush()
+        result = subprocess.run(["python", "other/random_name.py"])
 except Exception as e: 
     pass
 
