@@ -1,5 +1,4 @@
 
 ### 🎨 Tính năng sắp tới
-- Thêm convert gui
 - Sửa lại hệ thống convert model java sang bedrock
 - Support animation model 3D và 2D
