@@ -7,7 +7,7 @@ import shutil
 import random
 import string
 
-def random_name(length=30):
+def random_name(length=45):
     return 'campfire_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
 used_names = set()
@@ -260,7 +260,7 @@ def create_chest_screen():
     chest_file.parent.mkdir(parents=True, exist_ok=True)
     
     # Random tên thư mục gui
-    gui_folder_name = random_name(10)
+    gui_folder_name = random_name(15)
     gui_output_dir = Path(f"staging/target/rp/textures/{gui_folder_name}")
     
     # Rename thư mục gui nếu đã tồn tại

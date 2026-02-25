@@ -6,25 +6,34 @@ import json
 import shutil
 
 def random_name():
-    """Tạo tên random 30 ký tự chữ cái in thường và số xen kẽ"""
-    return 'campfire_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=30))
+    """Tạo tên random 45 ký tự chữ cái in thường và số xen kẽ"""
+    return 'campfire_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=45))
 
 def random_short_name():
-    """Tạo tên random 10 ký tự chữ cái in thường và số"""
-    return 'campfire_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
+    """Tạo tên random 15 ký tự chữ cái in thường và số"""
+    return 'campfire_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=15))
 
 def randomize_item_textures():
     """Random tên thư mục và file texture"""
     item_texture_path = "staging/target/rp/textures/item_texture.json"
+    terrain_texture_path = "staging/target/rp/textures/terrain_texture.json"
     textures_root = "staging/target/rp/textures"
     
-    if not os.path.exists(item_texture_path):
+    if not os.path.exists(item_texture_path) and not os.path.exists(terrain_texture_path):
         return
     
-    with open(item_texture_path, 'r', encoding='utf-8') as f:
-        item_texture_data = json.load(f)
+    # Đọc cả 2 file JSON
+    texture_data_combined = {}
     
-    texture_data = item_texture_data.get("texture_data", {})
+    if os.path.exists(item_texture_path):
+        with open(item_texture_path, 'r', encoding='utf-8') as f:
+            item_texture_data = json.load(f)
+            texture_data_combined['item'] = item_texture_data.get("texture_data", {})
+    
+    if os.path.exists(terrain_texture_path):
+        with open(terrain_texture_path, 'r', encoding='utf-8') as f:
+            terrain_texture_data = json.load(f)
+            texture_data_combined['terrain'] = terrain_texture_data.get("texture_data", {})
     
     # Bước 1: Thu thập tất cả file và thư mục cần rename
     files_to_rename = []  # [(abs_path, relative_path_without_ext)]
@@ -133,16 +142,32 @@ def randomize_item_textures():
         new_texture_path = "textures/" + "/".join(new_parts)
         path_mapping[old_texture_path] = new_texture_path
     
-    # Bước 7: Cập nhật item_texture.json
-    updated_textures = 0
-    for key, value in texture_data.items():
-        old_texture_path = value.get("textures", "")
-        if old_texture_path in path_mapping:
-            texture_data[key]["textures"] = path_mapping[old_texture_path]
-            updated_textures += 1
+    # Bước 7: Cập nhật item_texture.json và terrain_texture.json
+    if os.path.exists(item_texture_path):
+        item_data = texture_data_combined.get('item', {})
+        updated_textures = 0
+        for key, value in item_data.items():
+            old_texture_path = value.get("textures", "")
+            if old_texture_path in path_mapping:
+                item_data[key]["textures"] = path_mapping[old_texture_path]
+                updated_textures += 1
+        
+        item_texture_data['texture_data'] = item_data
+        with open(item_texture_path, 'w', encoding='utf-8') as f:
+            json.dump(item_texture_data, f, ensure_ascii=False, indent=0)
     
-    with open(item_texture_path, 'w', encoding='utf-8') as f:
-        json.dump(item_texture_data, f, ensure_ascii=False, indent=0)
+    if os.path.exists(terrain_texture_path):
+        terrain_data = texture_data_combined.get('terrain', {})
+        updated_textures = 0
+        for key, value in terrain_data.items():
+            old_texture_path = value.get("textures", "")
+            if old_texture_path in path_mapping:
+                terrain_data[key]["textures"] = path_mapping[old_texture_path]
+                updated_textures += 1
+        
+        terrain_texture_data['texture_data'] = terrain_data
+        with open(terrain_texture_path, 'w', encoding='utf-8') as f:
+            json.dump(terrain_texture_data, f, ensure_ascii=False, indent=0)
     
     # Bước 8: Cập nhật attachables
     attachables_dir = "staging/target/rp/attachables"
@@ -172,8 +197,8 @@ def randomize_item_textures():
                 updated_count += 1
 
 def random_folder_name():
-    """Tạo tên random 10 ký tự chữ cái in thường và số cho thư mục"""
-    return 'campfire_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
+    """Tạo tên random 15 ký tự chữ cái in thường và số cho thư mục"""
+    return 'campfire_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=15))
 
 def rename_json_files():
     """Random tên tất cả file JSON trong attachables, animations, models/entity"""
