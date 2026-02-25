@@ -10,8 +10,8 @@ def random_name():
     return ''.join(random.choices(string.ascii_lowercase + string.digits, k=70))
 
 def random_short_name():
-    """Tạo tên random 15 ký tự chữ cái in thường và số"""
-    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=15))
+    """Tạo tên random 12 ký tự chữ cái in thường và số"""
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=12))
 
 def randomize_item_textures():
     """Random tên thư mục và file texture dựa trên item_texture.json"""
@@ -23,18 +23,17 @@ def randomize_item_textures():
     
     print("[DEBUG] Bắt đầu randomize_item_textures()")
     
-    # Đọc item_texture.json
     with open(item_texture_path, 'r', encoding='utf-8') as f:
         item_texture_data = json.load(f)
     
     texture_data = item_texture_data.get("texture_data", {})
     path_mapping = {}
-    folder_mapping = {}  # Map: đường_dẫn_đầy_đủ → đường_dẫn_mới_đầy_đủ
+    folder_mapping = {}
     
     print(f"[DEBUG] Tìm thấy {len(texture_data)} textures")
     
-    # Bước 1: Thu thập tất cả đường dẫn thư mục
-    all_folder_paths = set()
+    # Bước 1: Thu thập tất cả đường dẫn đầy đủ của thư mục
+    all_full_paths = set()
     
     for key, value in texture_data.items():
         texture_path = value.get("textures", "")
@@ -43,64 +42,54 @@ def randomize_item_textures():
         
         parts = texture_path.replace("textures/", "").split("/")
         
-        # Thu thập tất cả đường dẫn thư mục (từ gốc đến sâu)
+        # Thu thập đường dẫn đầy đủ từng cấp
+        current = ""
         for i in range(len(parts) - 1):
-            folder_path = "/".join(parts[:i+1])
-            all_folder_paths.add(folder_path)
-    
-    # Sắp xếp từ nông đến sâu (để xử lý cha trước con)
-    sorted_paths = sorted(all_folder_paths, key=lambda x: x.count('/'))
-    
-    print(f"[DEBUG] Tìm thấy {len(sorted_paths)} đường dẫn thư mục")
-    
-    # Bước 2: Tạo mapping cho từng đường dẫn
-    for folder_path in sorted_paths:
-        parts = folder_path.split("/")
-        new_parts = []
-        
-        for i, part in enumerate(parts):
-            parent_path = "/".join(parts[:i]) if i > 0 else ""
-            current_path = "/".join(parts[:i+1])
-            
-            # Nếu đã có mapping cho đường dẫn này rồi, lấy phần cuối
-            if current_path in folder_mapping:
-                new_parts.append(folder_mapping[current_path].split("/")[-1])
+            if current:
+                current += "/" + parts[i]
             else:
-                # Tạo tên random mới
-                new_name = random_short_name()
-                
-                # Xây dựng đường dẫn đầy đủ mới
-                if parent_path and parent_path in folder_mapping:
-                    full_new_path = folder_mapping[parent_path] + "/" + new_name
-                else:
-                    full_new_path = new_name
-                
-                folder_mapping[current_path] = full_new_path
-                new_parts.append(new_name)
+                current = parts[i]
+            all_full_paths.add(current)
     
-    # Bước 3: Rename thư mục (từ sâu nhất lên để tránh conflict)
-    sorted_paths_reverse = sorted(all_folder_paths, key=lambda x: x.count('/'), reverse=True)
+    # Tạo mapping: đường dẫn đầy đủ -> tên random
+    for full_path in all_full_paths:
+        folder_mapping[full_path] = random_short_name()
+    
+    print(f"[DEBUG] Sẽ rename {len(folder_mapping)} đường dẫn thư mục")
+    
+    # Bước 2: Rename thư mục từ sâu nhất lên
+    sorted_paths = sorted(all_full_paths, key=lambda x: x.count('/'), reverse=True)
     renamed_folders = 0
     
-    for old_folder_path in sorted_paths_reverse:
-        old_path = "staging/target/rp/textures/" + old_folder_path
+    for old_full_path in sorted_paths:
+        old_abs_path = "staging/target/rp/textures/" + old_full_path
         
-        if not os.path.exists(old_path):
+        if not os.path.exists(old_abs_path):
             continue
         
-        new_folder_path = folder_mapping[old_folder_path]
-        new_path = "staging/target/rp/textures/" + new_folder_path
+        # Tính đường dẫn mới: thay thế từng cấp theo mapping
+        parts = old_full_path.split("/")
+        new_parts = []
         
-        parent_dir = os.path.dirname(new_path)
+        for i in range(len(parts)):
+            # Lấy đường dẫn từ đầu đến vị trí i
+            sub_path = "/".join(parts[:i+1])
+            # Dùng tên random từ mapping
+            new_parts.append(folder_mapping[sub_path])
+        
+        new_full_path = "/".join(new_parts)
+        new_abs_path = "staging/target/rp/textures/" + new_full_path
+        
+        parent_dir = os.path.dirname(new_abs_path)
         if not os.path.exists(parent_dir):
             os.makedirs(parent_dir, exist_ok=True)
         
-        shutil.move(old_path, new_path)
+        shutil.move(old_abs_path, new_abs_path)
         renamed_folders += 1
     
     print(f"[DEBUG] Đã rename {renamed_folders} thư mục")
     
-    # Bước 4: Random tên file và cập nhật mapping
+    # Bước 3: Random tên file và tạo path mapping
     renamed_files = 0
     
     for key, value in texture_data.items():
@@ -109,20 +98,30 @@ def randomize_item_textures():
             continue
         
         parts = texture_path.replace("textures/", "").split("/")
+        new_parts = []
+        
+        # Xử lý thư mục: thay thế theo mapping
+        for i in range(len(parts) - 1):
+            sub_path = "/".join(parts[:i+1])
+            new_parts.append(folder_mapping[sub_path])
+        
+        # Xử lý file
         old_filename = parts[-1]
         new_filename = random_short_name()
+        new_parts.append(new_filename)
         
-        # Lấy đường dẫn thư mục mới
+        # Tính đường dẫn file sau khi thư mục đã rename
         if len(parts) > 1:
             folder_path = "/".join(parts[:-1])
-            new_folder_path = folder_mapping.get(folder_path, folder_path)
-            file_dir = "staging/target/rp/textures/" + new_folder_path
-            new_texture_path = "textures/" + new_folder_path + "/" + new_filename
+            folder_parts = folder_path.split("/")
+            new_folder_parts = []
+            for i in range(len(folder_parts)):
+                sub_path = "/".join(parts[:i+1])
+                new_folder_parts.append(folder_mapping[sub_path])
+            file_dir = "staging/target/rp/textures/" + "/".join(new_folder_parts)
         else:
             file_dir = "staging/target/rp/textures"
-            new_texture_path = "textures/" + new_filename
         
-        # Rename file PNG
         old_png = os.path.join(file_dir, old_filename + ".png")
         new_png = os.path.join(file_dir, new_filename + ".png")
         
@@ -130,13 +129,15 @@ def randomize_item_textures():
             shutil.move(old_png, new_png)
             renamed_files += 1
         
-        # Cập nhật mapping
-        path_mapping[texture_path] = new_texture_path
-        texture_data[key]["textures"] = new_texture_path
+        # Lưu mapping
+        old_path = texture_path
+        new_path = "textures/" + "/".join(new_parts)
+        path_mapping[old_path] = new_path
+        texture_data[key]["textures"] = new_path
     
     print(f"[DEBUG] Đã rename {renamed_files} file PNG")
     
-    # Bước 5: Cập nhật attachables
+    # Bước 4: Cập nhật attachables
     attachables_dir = "staging/target/rp/attachables"
     updated_count = 0
     
@@ -166,7 +167,7 @@ def randomize_item_textures():
         
         print(f"[DEBUG] Đã cập nhật {updated_count} attachable JSON")
     
-    # Bước 6: Ghi lại item_texture.json
+    # Bước 5: Ghi lại item_texture.json
     with open(item_texture_path, 'w', encoding='utf-8') as f:
         json.dump(item_texture_data, f, ensure_ascii=False, indent=0)
     
