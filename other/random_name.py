@@ -6,12 +6,12 @@ import json
 import shutil
 
 def random_name():
-    """Tạo tên random 70 ký tự chữ cái in thường và số xen kẽ"""
-    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=70))
+    """Tạo tên random 30 ký tự chữ cái in thường và số xen kẽ"""
+    return 'campfire_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=30))
 
 def random_short_name():
-    """Tạo tên random 12 ký tự chữ cái in thường và số"""
-    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=18))
+    """Tạo tên random 10 ký tự chữ cái in thường và số"""
+    return 'campfire_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
 
 def randomize_item_textures():
     """Random tên thư mục và file texture"""
@@ -172,8 +172,8 @@ def randomize_item_textures():
                 updated_count += 1
 
 def random_folder_name():
-    """Tạo tên random 15 ký tự chữ cái in thường và số cho thư mục"""
-    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=15))
+    """Tạo tên random 10 ký tự chữ cái in thường và số cho thư mục"""
+    return 'campfire_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
 
 def rename_json_files():
     """Random tên tất cả file JSON trong attachables, animations, models/entity"""
