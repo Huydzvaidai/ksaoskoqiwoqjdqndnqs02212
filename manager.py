@@ -47,15 +47,13 @@ try:
 except Exception as e: pass
 try:
     if os.getenv("ANIMATION_2D_CONVERSION") == "true":
-        result = subprocess.run(["python", "animations/anim_2d.py"], capture_output=True, text=True)
-        print("=== ANIMATION_2D_CONVERSION Output ===")
-        if result.stdout:
-            print(result.stdout)
-        if result.stderr:
-            print("Errors:", result.stderr)
-        print(f"Return code: {result.returncode}")
+        print("=== Starting ANIMATION_2D_CONVERSION ===")
+        import sys
+        sys.path.insert(0, 'animations')
+        import anim_2d
+        print("=== Finished ANIMATION_2D_CONVERSION ===")
 except Exception as e: 
-    print(f"Error running anim_2d.py: {e}")
+    print(f"Error in anim_2d: {e}")
     pass
 try:
     if os.getenv("GUI_CONVERSION") == "true":
