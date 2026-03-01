@@ -114,7 +114,8 @@ try:
         result2 = subprocess.run(["python", "other/group_resolve.py"], capture_output=True, text=True)
         result3 = subprocess.run(["python", "other/merge_models.py"], capture_output=True, text=True)
         result4 = subprocess.run(["python", "other/attachables_dupe.py"], capture_output=True, text=True)
-        result5 = subprocess.run(["python", "other/random_name.py"], capture_output=True, text=True)
+        result5 = subprocess.run(["python", "other/directory_confusion.py"], capture_output=True, text=True)
+        result6 = subprocess.run(["python", "other/random_name.py"], capture_output=True, text=True)
     else:
         if "clear animation folders" in other_conversion.lower() or "Clear animation folders" in other_conversion:
             result = subprocess.run(["python", "other/animations_clear.py"], capture_output=True, text=True)
@@ -122,6 +123,8 @@ try:
             result = subprocess.run(["python", "other/group_resolve.py"], capture_output=True, text=True)
         if "merge json models" in other_conversion.lower() or "Merge json models" in other_conversion:
             result = subprocess.run(["python", "other/merge_models.py"], capture_output=True, text=True)
+        if "directory confusion" in other_conversion.lower() or "Directory Confusion" in other_conversion:
+            result = subprocess.run(["python", "other/directory_confusion.py"], capture_output=True, text=True)
         if "random name json" in other_conversion.lower() or "Random name json" in other_conversion:
             result = subprocess.run(["python", "other/random_name.py"], capture_output=True, text=True)
         if "attachable dupe" in other_conversion.lower() or "Attachable dupe" in other_conversion:

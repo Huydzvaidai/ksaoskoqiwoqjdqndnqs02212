@@ -56,9 +56,9 @@ def randomize_item_textures():
         if should_skip:
             continue
         
-        # Bỏ qua file item_texture.json
+        # Bỏ qua file item_texture.json và terrain_texture.json
         for file in files:
-            if file == 'item_texture.json':
+            if file in ['item_texture.json', 'terrain_texture.json']:
                 continue
             if file.endswith('.png'):
                 abs_path = os.path.join(root, file)
@@ -233,6 +233,58 @@ def rename_json_files():
                     new_dir_path = os.path.join(os.path.dirname(old_dir_path), random_folder_name())
                     os.rename(old_dir_path, new_dir_path)
 
+def check_randomized():
+    """Kiểm tra xem tất cả file JSON và thư mục đã có prefix campfire_ chưa"""
+    dirs = [
+        "staging/target/rp/attachables",
+        "staging/target/rp/animations",
+        "staging/target/rp/models/entity",
+        "staging/target/rp/render_controllers",
+        "staging/target/rp/animation_controllers"
+    ]
+    
+    skip_folders = ['gui', 'campfire_item']
+    
+    for directory in dirs:
+        if os.path.exists(directory):
+            for json_file in glob.glob(f"{directory}/**/*.json", recursive=True):
+                if not os.path.basename(json_file).startswith("campfire_"):
+                    print(f"[DEBUG] File chưa random: {json_file}")
+                    return False
+            
+            if directory in ["staging/target/rp/attachables", "staging/target/rp/models/entity"]:
+                for root, dirs_list, files in os.walk(directory):
+                    for dir_name in dirs_list:
+                        if not dir_name.startswith("campfire_"):
+                            print(f"[DEBUG] Thư mục chưa random: {os.path.join(root, dir_name)}")
+                            return False
+    
+    # Kiểm tra textures
+    textures_root = "staging/target/rp/textures"
+    if os.path.exists(textures_root):
+        for root, dirs_list, files in os.walk(textures_root):
+            rel_root = os.path.relpath(root, textures_root)
+            should_skip = any(rel_root == skip or rel_root.startswith(skip + os.sep) for skip in skip_folders)
+            
+            if not should_skip:
+                for file in files:
+                    if file in ['item_texture.json', 'terrain_texture.json']:
+                        continue
+                    if file.endswith('.png') and not file.startswith("campfire_"):
+                        print(f"[DEBUG] File PNG chưa random: {os.path.join(root, file)}")
+                        return False
+                for dir_name in dirs_list:
+                    if dir_name not in skip_folders and not dir_name.startswith("campfire_"):
+                        print(f"[DEBUG] Thư mục texture chưa random: {os.path.join(root, dir_name)}")
+                        return False
+    
+    print("[DEBUG] Tất cả file và thư mục đã được random")
+    return True
+
 if __name__ == "__main__":
     randomize_item_textures()
     rename_json_files()
+    
+    if not check_randomized():
+        randomize_item_textures()
+        rename_json_files()

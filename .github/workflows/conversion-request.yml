@@ -246,6 +246,7 @@ jobs:
           cp other/group_resolve.py staging/other/
           cp other/attachables_dupe.py staging/other/
           cp other/random_name.py staging/other/
+          cp other/directory_confusion.py staging/other/
           cp other/merge_models.py staging/other/
           cp other/mappings.py staging/other/
           cp other/gui.py staging/other/
