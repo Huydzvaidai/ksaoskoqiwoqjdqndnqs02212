@@ -32,8 +32,17 @@ def confuse_directory():
             if random.random() < 0.6:
                 target_dir = random.choice(existing_dirs)
                 new_path = os.path.join(target_dir, os.path.basename(json_file))
-                if not os.path.exists(new_path):
-                    shutil.move(json_file, new_path)
+                
+                # Nếu file đã tồn tại, thêm suffix số
+                if os.path.exists(new_path):
+                    base_name = os.path.splitext(os.path.basename(json_file))[0]
+                    counter = 1
+                    while os.path.exists(new_path):
+                        new_name = f"{base_name}_{counter}.json"
+                        new_path = os.path.join(target_dir, new_name)
+                        counter += 1
+                
+                shutil.move(json_file, new_path)
 
 if __name__ == "__main__":
     confuse_directory()
