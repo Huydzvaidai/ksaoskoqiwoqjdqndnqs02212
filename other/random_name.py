@@ -150,35 +150,30 @@ def randomize_item_textures():
             new_path = os.path.join(os.path.dirname(abs_path), new_name)
             shutil.move(abs_path, new_path)
     
-    # Bước 6: Tạo path mapping cho item_texture.json
+    # Bước 6: Tạo path mapping SAU KHI xáo trộn (để có đường dẫn chính xác)
     path_mapping = {}
     
-    for rel_path_no_ext, new_file_name in file_mapping.items():
-        # Chuyển đổi đường dẫn Windows sang Unix style
-        rel_path_unix = rel_path_no_ext.replace(os.sep, '/')
+    # Thu thập lại tất cả file PNG sau khi xáo trộn
+    current_png_files = {}  # old_name -> new_full_path
+    for root, dirs, files in os.walk(textures_root):
+        rel_root = os.path.relpath(root, textures_root)
+        should_skip = any(rel_root == skip or rel_root.startswith(skip + os.sep) for skip in skip_folders)
         
-        # Tách thành parts
-        parts = rel_path_unix.split('/')
-        
-        # Thay thế tên thư mục theo mapping
-        new_parts = []
-        for i in range(len(parts) - 1):  # Bỏ phần file name
-            # Tính relative path của thư mục này
-            folder_rel = '/'.join(parts[:i+1])
-            folder_rel_os = folder_rel.replace('/', os.sep)
-            
-            if folder_rel_os in folder_mapping:
-                new_parts.append(folder_mapping[folder_rel_os])
-            else:
-                new_parts.append(parts[i])
-        
-        # Thêm tên file mới
-        new_parts.append(new_file_name)
-        
-        # Tạo mapping
-        old_texture_path = "textures/" + rel_path_unix
-        new_texture_path = "textures/" + "/".join(new_parts)
-        path_mapping[old_texture_path] = new_texture_path
+        if not should_skip:
+            for file in files:
+                if file.endswith('.png') and file not in ['item_texture.json', 'terrain_texture.json']:
+                    abs_path = os.path.join(root, file)
+                    rel_path = os.path.relpath(abs_path, textures_root)
+                    
+                    # Tìm tên gốc từ file_mapping
+                    for old_rel_path, new_name in file_mapping.items():
+                        # Kiểm tra nếu file hiện tại khớp với new_name (có thể có suffix _1, _2)
+                        file_base = os.path.splitext(file)[0]
+                        if file_base == new_name or file_base.startswith(new_name + "_"):
+                            old_texture_path = "textures/" + old_rel_path.replace(os.sep, '/')
+                            new_texture_path = "textures/" + rel_path.replace(os.sep, '/')[:-4]  # Bỏ .png
+                            path_mapping[old_texture_path] = new_texture_path
+                            break
     
     # Bước 7: Cập nhật item_texture.json và terrain_texture.json
     if os.path.exists(item_texture_path):
