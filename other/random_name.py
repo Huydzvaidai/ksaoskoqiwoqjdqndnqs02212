@@ -105,6 +105,44 @@ def randomize_item_textures():
             new_path = os.path.join(os.path.dirname(abs_path), new_name + '.png')
             shutil.move(abs_path, new_path)
     
+    # Bước 4.5: Xáo trộn 70% file PNG giữa các thư mục
+    all_png_files = []
+    for root, dirs, files in os.walk(textures_root):
+        rel_root = os.path.relpath(root, textures_root)
+        should_skip = any(rel_root == skip or rel_root.startswith(skip + os.sep) for skip in skip_folders)
+        
+        if not should_skip:
+            for file in files:
+                if file.endswith('.png') and file not in ['item_texture.json', 'terrain_texture.json']:
+                    all_png_files.append(os.path.join(root, file))
+    
+    # Chọn 70% file để xáo trộn
+    num_to_shuffle = int(len(all_png_files) * 0.7)
+    files_to_shuffle = random.sample(all_png_files, num_to_shuffle)
+    
+    # Tạo danh sách thư mục đích
+    target_dirs = set()
+    for png_file in all_png_files:
+        target_dirs.add(os.path.dirname(png_file))
+    target_dirs = list(target_dirs)
+    
+    # Xáo trộn file
+    for png_file in files_to_shuffle:
+        if os.path.exists(png_file):
+            target_dir = random.choice(target_dirs)
+            new_path = os.path.join(target_dir, os.path.basename(png_file))
+            
+            # Nếu trùng tên, thêm suffix
+            if os.path.exists(new_path):
+                base_name = os.path.splitext(os.path.basename(png_file))[0]
+                counter = 1
+                while os.path.exists(new_path):
+                    new_name = f"{base_name}_{counter}.png"
+                    new_path = os.path.join(target_dir, new_name)
+                    counter += 1
+            
+            shutil.move(png_file, new_path)
+    
     # Bước 5: Rename folders (từ sâu nhất lên)
     for abs_path, rel_path in folders_to_rename:
         if os.path.exists(abs_path):
