@@ -77,22 +77,21 @@ def confuse_directory():
         if not existing_dirs:
             continue
         
-        # Xáo trộn file vào các thư mục con ngẫu nhiên
+        # Xáo trộn 100% file vào các thư mục con ngẫu nhiên
         for json_file in json_files:
-            if random.random() < 0.9:
-                target_dir = random.choice(existing_dirs)
-                new_path = os.path.join(target_dir, os.path.basename(json_file))
-                
-                # Nếu file đã tồn tại, thêm suffix số
-                if os.path.exists(new_path):
-                    base_name = os.path.splitext(os.path.basename(json_file))[0]
-                    counter = 1
-                    while os.path.exists(new_path):
-                        new_name = f"{base_name}_{counter}.json"
-                        new_path = os.path.join(target_dir, new_name)
-                        counter += 1
-                
-                shutil.move(json_file, new_path)
+            target_dir = random.choice(existing_dirs)
+            new_path = os.path.join(target_dir, os.path.basename(json_file))
+            
+            # Nếu file đã tồn tại, thêm suffix số
+            if os.path.exists(new_path):
+                base_name = os.path.splitext(os.path.basename(json_file))[0]
+                counter = 1
+                while os.path.exists(new_path):
+                    new_name = f"{base_name}_{counter}.json"
+                    new_path = os.path.join(target_dir, new_name)
+                    counter += 1
+            
+            shutil.move(json_file, new_path)
 
 if __name__ == "__main__":
     split_animations()

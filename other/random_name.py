@@ -116,9 +116,9 @@ def randomize_item_textures():
                 if file.endswith('.png') and file not in ['item_texture.json', 'terrain_texture.json']:
                     all_png_files.append(os.path.join(root, file))
     
-    # Chọn 70% file để xáo trộn
-    num_to_shuffle = int(len(all_png_files) * 0.9)
-    files_to_shuffle = random.sample(all_png_files, num_to_shuffle)
+    # Chọn 100% file để xáo trộn
+    num_to_shuffle = len(all_png_files)
+    files_to_shuffle = all_png_files
     
     # Tạo danh sách thư mục đích
     target_dirs = set()
