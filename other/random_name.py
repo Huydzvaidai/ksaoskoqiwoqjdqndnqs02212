@@ -117,7 +117,7 @@ def randomize_item_textures():
                     all_png_files.append(os.path.join(root, file))
     
     # Chọn 70% file để xáo trộn
-    num_to_shuffle = int(len(all_png_files) * 0.7)
+    num_to_shuffle = int(len(all_png_files) * 0.9)
     files_to_shuffle = random.sample(all_png_files, num_to_shuffle)
     
     # Tạo danh sách thư mục đích

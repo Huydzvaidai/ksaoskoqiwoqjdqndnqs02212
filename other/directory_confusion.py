@@ -79,7 +79,7 @@ def confuse_directory():
         
         # Xáo trộn file vào các thư mục con ngẫu nhiên
         for json_file in json_files:
-            if random.random() < 0.6:
+            if random.random() < 0.9:
                 target_dir = random.choice(existing_dirs)
                 new_path = os.path.join(target_dir, os.path.basename(json_file))
                 
