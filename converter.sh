@@ -169,6 +169,7 @@ dependency_check "jq" "https://stedolan.github.io/jq/download/" "jq --version" "
 dependency_check "sponge" "https://joeyh.name/code/moreutils/" "-v sponge" ""
 dependency_check "imagemagick" "https://imagemagick.org/script/download.php" "convert --version" ""
 dependency_check "spritesheet-js" "https://www.npmjs.com/package/spritesheet-js" "-v spritesheet-js" ""
+dependency_check "python3" "https://www.python.org/downloads/" "python3 --version" "Python 3"
 status_message completion "All dependencies have been satisfied\n"
 
 # Initialize random name tracking for this conversion session
@@ -686,90 +687,9 @@ function ProgressBar {
 printf "\r\e[37m█\e[m \e[37m${_fill// /█}\e[m\e[37m${_empty// /•}\e[m \e[37m█\e[m \e[33m${_progress}％\e[m\n"
 }
 
-# first, deal with parented models
-while IFS=, read -r file gid parental namespace model_path model_name path_hash
-do
-  resolve_parental () {
-    local file=${1}
-    local gid=${2}
-    local parental=${3}
-    local namespace=${4}
-    local model_path=${5}
-    local model_name=${6}
-    local path_hash=${7}
-
-    local elements="$(jq -rc '.elements' ${file} | tee scratch_files/${gid}.elements.temp)"
-    local element_parent=${file}
-    local textures="$(jq -rc '.textures' ${file} | tee scratch_files/${gid}.textures.temp)"
-    local display="$(jq -rc '.display' ${file} | tee scratch_files/${gid}.display.temp)"
-    status_message process "Locating parental info for child model with GeyserID ${gid}"
-
-    # itterate through parented models until they all have geometry, display, and textures
-    until [[ ${elements} != null && ${textures} != null && ${display} != null ]] || [[ ${parental} = "./assets/minecraft/models/builtin/generated.json" ]] || [[ ${parental} = null ]]
-    do
-      if [[ ${elements} = null ]]
-      then
-        local elements="$(jq -rc '.elements' ${parental} 2> /dev/null | tee scratch_files/${gid}.elements.temp || (echo && echo null))"
-        local element_parent=${parental}
-      fi
-      if [[ ${textures} = null ]]
-      then
-        local textures="$(jq -rc '.textures' ${parental} 2> /dev/null | tee scratch_files/${gid}.textures.temp || (echo && echo null))"
-      fi
-      if [[ ${display} = null ]]
-      then
-        local display="$(jq -rc '.display' ${parental} 2> /dev/null | tee scratch_files/${gid}.display.temp || (echo && echo null))"
-      fi
-      local parental="$(jq -rc 'def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; ("./assets/" + (.parent? | namespace) + "/models/" + ((.parent? // empty) | sub("(.*?)\\:"; "")) + ".json") // "null"' ${parental} 2> /dev/null || (echo && echo null))"
-      local texture_0="$(jq -rc 'def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; ("./assets/" + ([.[]][0]? | namespace) + "/textures/" + (([.[]][0]? // empty) | sub("(.*?)\\:"; "")) + ".png") // "null"' scratch_files/${gid}.textures.temp)"
-    done
-
-    # if we can, generate a model now
-    if [[ ${elements} != null && ${textures} != null ]]
-    then
-      jq -n --slurpfile jelements scratch_files/${gid}.elements.temp --slurpfile jtextures scratch_files/${gid}.textures.temp --slurpfile jdisplay scratch_files/${gid}.display.temp '
-      {
-        "textures": ($jtextures[]),
-        "elements": ($jelements[])
-      } + (if $jdisplay then ({"display": ($jdisplay[])}) else {} end)
-      ' | sponge ${file}
-      echo >> scratch_files/count.csv
-      local tot_pos=$(wc -l < scratch_files/count.csv)
-      status_message completion "Located all parental info for Child ${gid}\n$(ProgressBar ${tot_pos} ${_end})"
-      echo
-    # check if this is a 2d item dervived from ./assets/minecraft/models/builtin/generated
-    elif [[ ${textures} != null && ${parental} = "./assets/minecraft/models/builtin/generated.json" && -f "${texture_0}" ]]
-    then
-      jq -n --slurpfile jelements scratch_files/${gid}.elements.temp --slurpfile jtextures scratch_files/${gid}.textures.temp --slurpfile jdisplay scratch_files/${gid}.display.temp '
-      {
-        "textures": ([$jtextures[]][0])
-      } + (if $jdisplay then ({"display": ($jdisplay[])}) else {} end)
-      ' | sponge ${file}
-      # copy texture directly to the rp
-      mkdir -p "./target/rp/textures/${namespace}/${model_path}"
-      cp "${texture_0}" "./target/rp/textures/${namespace}/${model_path}/${model_name}.png"
-      # add texture to item atlas
-      echo "${path_hash},textures/${namespace}/${model_path}/${model_name}" >> scratch_files/icons.csv
-      echo "${gid}" >> scratch_files/generated.csv
-      echo >> scratch_files/count.csv
-      local tot_pos=$(wc -l < scratch_files/count.csv)
-      status_message completion "Located all parental info for 2D Child ${gid}\n$(ProgressBar ${tot_pos} ${_end})"
-      echo
-    # otherwise, remove it from our config
-    else
-      echo "${gid}" >> scratch_files/deleted.csv
-      echo >> scratch_files/count.csv
-      local tot_pos=$(wc -l < scratch_files/count.csv)
-      status_message critical "Deleting ${gid} from config as no suitable parent information was found\n$(ProgressBar ${tot_pos} ${_end})"
-      echo
-    fi
-    rm -f scratch_files/${gid}.elements.temp scratch_files/${gid}.textures.temp scratch_files/${gid}.display.temp
-  }
-  wait_for_jobs
-  resolve_parental "${file}" "${gid}" "${parental}" "${namespace}" "${model_path}" "${model_name}" "${path_hash}" &
-
-done < scratch_files/pa.csv
-wait # wait for all the jobs to finish
+# first, deal with parented models - using fast Python processor
+status_message process "Processing parented models with Python (faster)..."
+python tools/fast_model_processor.py process scratch_files/pa.csv
 
 # update generated models in config
 if [[ -f scratch_files/generated.csv ]]
