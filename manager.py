@@ -76,11 +76,6 @@ try:
 except Exception as e: pass
 
 try:
-    result = subprocess.run(["python", "other/resize_armor.py"], capture_output=True, text=True)
-except Exception as e: 
-    pass
-
-try:
     result = subprocess.run(
         ["node", "tools/generate-simple.js"],
         cwd=".",
