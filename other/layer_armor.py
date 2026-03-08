@@ -48,6 +48,15 @@ def process_armor_items():
     
     print(f"Đã đọc file yml, kích thước: {len(content)} bytes")
     
+    # In ra 500 ký tự đầu để xem format
+    print("=== 500 ký tự đầu của file ===")
+    print(content[:500])
+    print("=== Kết thúc preview ===")
+    
+    # Tìm một ví dụ helmet để test
+    helmet_sample = content[content.find("helmet"):content.find("helmet")+100] if "helmet" in content else "Không tìm thấy helmet"
+    print(f"=== Mẫu helmet: {helmet_sample} ===")
+    
     # Pattern mới cho format: namespace:item_name: số
     # Ví dụ: plny_luminite_set:luminite_sethelmet: 10017
     armor_patterns = [
