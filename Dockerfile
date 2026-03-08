@@ -15,7 +15,7 @@ RUN apt-get update -qq && \
     wget \
     git \
     jq \
-    python3.11 \
+    python3 \
     python3-pip \
     nodejs \
     npm \
