@@ -197,14 +197,7 @@ jobs:
       
       - name: Install Python packages
         run: |
-          if [ ! -f ~/.cache/pip/.installed ]; then
-            echo "Installing Python packages..."
-            pip install Pillow requests jproperties pyyaml
-            mkdir -p ~/.cache/pip
-            touch ~/.cache/pip/.installed
-          else
-            echo "✓ Python packages from cache"
-          fi
+          pip install Pillow requests jproperties pyyaml
       
       - name: Setup npm global path
         run: |
@@ -214,23 +207,12 @@ jobs:
       
       - name: Install spritesheet-js
         run: |
-          if ! command -v spritesheet-js &> /dev/null; then
-            echo "Installing spritesheet-js..."
-            npm install -g spritesheet-js
-            touch ~/.npm-global/.installed
-          else
-            echo "✓ spritesheet-js already available"
-          fi
+          npm install -g spritesheet-js
       
       - name: Install icon generator dependencies
         run: |
           cd tools
-          if [ ! -d "node_modules" ]; then
-            echo "Installing icon generator dependencies..."
-            PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true npm install
-          else
-            echo "✓ Icon generator dependencies from cache"
-          fi
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true npm install
           cd ..
       
       - name: Convert Pack
