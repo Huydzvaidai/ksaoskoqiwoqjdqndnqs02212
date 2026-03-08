@@ -185,13 +185,7 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
-      - name: Setup micromamba for faster package installation
-        uses: mamba-org/setup-micromamba@v1
-        with:
-          micromamba-version: 'latest'
-          environment-name: converter
-          create-args: python=3.11 pillow requests pyyaml
-          cache-environment: true
+          cache-dependency-path: 'requirements.txt'
       - name: Install dependencies
         run: |
           # Install system packages in parallel
@@ -201,8 +195,8 @@ jobs:
           # Install Node packages in parallel
           yarn global add spritesheet-js &
           
-          # Install jproperties via pip (not available in conda)
-          pip install --no-cache-dir jproperties &
+          # Install Python packages in parallel
+          pip install --no-cache-dir -r requirements.txt &
           
           # Wait for all background jobs
           wait
