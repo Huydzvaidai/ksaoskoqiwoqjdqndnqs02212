@@ -170,7 +170,6 @@ jobs:
           python-version: '3.10'
       
       - name: Cache system dependencies
-        id: cache-system
         uses: actions/cache@v4
         with:
           path: |
@@ -179,41 +178,35 @@ jobs:
           key: ${{ runner.os }}-system-deps-v1
       
       - name: Cache Python packages
-        id: cache-python
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-v1
       
       - name: Cache Node global packages
-        id: cache-node-global
         uses: actions/cache@v4
         with:
           path: ~/.npm-global
           key: ${{ runner.os }}-node-global-v1
       
       - name: Cache icon generator dependencies
-        id: cache-icon-gen
         uses: actions/cache@v4
         with:
           path: tools/node_modules
           key: ${{ runner.os }}-icon-gen-${{ hashFiles('tools/package-lock.json') }}
       
       - name: Cache default assets
-        id: cache-default-assets
         uses: actions/cache@v4
         with:
           path: staging/default_assets.zip
           key: ${{ runner.os }}-assets-${{ needs.get-pack-info.outputs.default_assets_version }}
       
       - name: Install system dependencies
-        if: steps.cache-system.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq moreutils zip unzip imagemagick
       
       - name: Install Python packages
-        if: steps.cache-python.outputs.cache-hit != 'true'
         run: pip install Pillow requests jproperties pyyaml
       
       - name: Setup npm global path
@@ -223,11 +216,9 @@ jobs:
           echo "$HOME/.npm-global/bin" >> $GITHUB_PATH
       
       - name: Install spritesheet-js
-        if: steps.cache-node-global.outputs.cache-hit != 'true'
         run: npm install -g spritesheet-js
       
       - name: Install icon generator dependencies
-        if: steps.cache-icon-gen.outputs.cache-hit != 'true'
         run: |
           cd tools
           npm ci
