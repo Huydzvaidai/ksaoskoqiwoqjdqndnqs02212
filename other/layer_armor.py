@@ -77,16 +77,21 @@ def process_armor_items():
     cit_folder = "pack/assets/minecraft/optifine/cit/ia_generated_armors"
     os.makedirs(cit_folder, exist_ok=True)
     
-    # Liệt kê các file yml trong contents
-    yml_files = [f for f in os.listdir(contents_folder) if f.endswith('.yml')]
-    print(f"\nTìm thấy {len(yml_files)} file yml trong {contents_folder}:")
+    # Quét đệ quy tất cả file yml trong contents
+    yml_files = []
+    for root, dirs, files in os.walk(contents_folder):
+        for file in files:
+            if file.endswith('.yml'):
+                yml_files.append(os.path.join(root, file))
+    
+    print(f"\nTìm thấy {len(yml_files)} file yml trong {contents_folder} (đệ quy):")
     for yml_file in yml_files[:5]:  # In ra 5 file đầu
         print(f"  - {yml_file}")
     
     # Đọc thử 1 file yml để xem cấu trúc
     if yml_files:
-        sample_yml = os.path.join(contents_folder, yml_files[0])
-        print(f"\n=== Cấu trúc file mẫu: {yml_files[0]} ===")
+        sample_yml = yml_files[0]
+        print(f"\n=== Cấu trúc file mẫu: {os.path.basename(sample_yml)} ===")
         try:
             with open(sample_yml, 'r', encoding='utf-8') as f:
                 sample_data = yaml.safe_load(f)
@@ -106,9 +111,7 @@ def process_armor_items():
         found_layers = False
         random_name = None
         
-        for yml_file in os.listdir(contents_folder):
-            if yml_file.endswith('.yml'):
-                yml_file_path = os.path.join(contents_folder, yml_file)
+        for yml_file_path in yml_files:
                 
                 try:
                     with open(yml_file_path, 'r', encoding='utf-8') as f:
