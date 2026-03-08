@@ -169,14 +169,10 @@ jobs:
         with:
           python-version: '3.10'
       
-      - name: Cache system dependencies
-        id: cache-system
-        uses: actions/cache@v4
-        with:
-          path: |
-            /var/cache/apt
-            /var/lib/apt
-          key: ${{ runner.os }}-system-deps-v1
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq moreutils zip unzip imagemagick
       
       - name: Cache Python packages
         id: cache-python
@@ -206,22 +202,16 @@ jobs:
           path: staging/default_assets.zip
           key: ${{ runner.os }}-assets-${{ needs.get-pack-info.outputs.default_assets_version }}
       
-      - name: Install system dependencies
-        if: steps.cache-system.outputs.cache-hit != 'true'
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq moreutils zip unzip imagemagick
-      
-      - name: Verify system tools available
-        run: |
-          which moreutils || sudo apt-get install -y -qq moreutils
-          which zip || sudo apt-get install -y -qq zip
-          which unzip || sudo apt-get install -y -qq unzip
-          which convert || sudo apt-get install -y -qq imagemagick
-      
       - name: Install Python packages
-        if: steps.cache-python.outputs.cache-hit != 'true'
-        run: pip install Pillow requests jproperties pyyaml
+        run: |
+          if [ ! -f ~/.cache/pip/.installed ]; then
+            echo "Installing Python packages..."
+            pip install Pillow requests jproperties pyyaml
+            mkdir -p ~/.cache/pip
+            touch ~/.cache/pip/.installed
+          else
+            echo "✓ Python packages from cache"
+          fi
       
       - name: Setup npm global path
         run: |
@@ -230,14 +220,24 @@ jobs:
           echo "$HOME/.npm-global/bin" >> $GITHUB_PATH
       
       - name: Install spritesheet-js
-        if: steps.cache-node-global.outputs.cache-hit != 'true'
-        run: npm install -g spritesheet-js
+        run: |
+          if [ ! -f ~/.npm-global/.installed ]; then
+            echo "Installing spritesheet-js..."
+            npm install -g spritesheet-js
+            touch ~/.npm-global/.installed
+          else
+            echo "✓ spritesheet-js from cache"
+          fi
       
       - name: Install icon generator dependencies
-        if: steps.cache-icon-gen.outputs.cache-hit != 'true'
         run: |
           cd tools
-          npm install
+          if [ ! -d "node_modules" ]; then
+            echo "Installing icon generator dependencies..."
+            PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true npm install
+          else
+            echo "✓ Icon generator dependencies from cache"
+          fi
           cd ..
       
       - name: Convert Pack
