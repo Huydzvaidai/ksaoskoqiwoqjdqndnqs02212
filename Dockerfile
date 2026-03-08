@@ -4,9 +4,9 @@ FROM ubuntu:22.04
 # Prevent interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies
+# Install system dependencies and Python/Node in one layer
 RUN apt-get update -qq && \
-    apt-get install -y -qq \
+    apt-get install -y -qq --no-install-recommends \
     moreutils \
     zip \
     unzip \
@@ -18,20 +18,22 @@ RUN apt-get update -qq && \
     python3 \
     python3-pip \
     nodejs \
-    npm \
-    yarn && \
+    npm && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Upgrade pip
+RUN python3 -m pip install --upgrade pip
+
 # Install Python packages
 RUN pip3 install --no-cache-dir \
-    Pillow \
-    requests \
-    jproperties \
-    pyyaml
+    Pillow>=10.0.0 \
+    requests>=2.31.0 \
+    jproperties>=2.1.1 \
+    pyyaml>=6.0
 
-# Install Node packages globally
-RUN yarn global add spritesheet-js
+# Install Node packages globally using npm (more reliable than yarn)
+RUN npm install -g spritesheet-js
 
 # Set working directory
 WORKDIR /workspace
