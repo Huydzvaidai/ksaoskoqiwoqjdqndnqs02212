@@ -174,12 +174,24 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-v1
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Cache npm global
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-v1
+          restore-keys: |
+            ${{ runner.os }}-npm-
       
       - name: Cache tools node_modules
         uses: actions/cache@v4
         with:
           path: tools/node_modules
           key: ${{ runner.os }}-tools-v1
+          restore-keys: |
+            ${{ runner.os }}-tools-
       
       - name: Install dependencies
         run: |
