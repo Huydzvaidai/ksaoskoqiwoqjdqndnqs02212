@@ -195,13 +195,6 @@ jobs:
           path: tools/node_modules
           key: ${{ runner.os }}-icon-gen-${{ hashFiles('tools/package.json') }}
       
-      - name: Cache default assets
-        id: cache-default-assets
-        uses: actions/cache@v4
-        with:
-          path: staging/default_assets.zip
-          key: ${{ runner.os }}-assets-${{ needs.get-pack-info.outputs.default_assets_version }}
-      
       - name: Install Python packages
         run: |
           if [ ! -f ~/.cache/pip/.installed ]; then
@@ -221,12 +214,12 @@ jobs:
       
       - name: Install spritesheet-js
         run: |
-          if [ ! -f ~/.npm-global/.installed ]; then
+          if ! command -v spritesheet-js &> /dev/null; then
             echo "Installing spritesheet-js..."
             npm install -g spritesheet-js
             touch ~/.npm-global/.installed
           else
-            echo "✓ spritesheet-js from cache"
+            echo "✓ spritesheet-js already available"
           fi
       
       - name: Install icon generator dependencies
