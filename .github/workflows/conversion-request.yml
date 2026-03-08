@@ -170,7 +170,7 @@ jobs:
           path: |
             /home/runner/work/java2bedrock.sh/java2bedrock.sh/staging/default_assets.zip
             /home/runner/work/java2bedrock.sh/java2bedrock.sh/staging/scratch_files
-          key: ${{ runner.os }}-${{ needs.get-pack-info.outputs.default_assets_version }}-${{ hashFiles('**/package.json') }}
+          key: "${{ runner.os }}-${{ needs.get-pack-info.outputs.default_assets_version }}-${{ hashFiles('**/package.json') }}"
           restore-keys: |
             ${{ runner.os }}-${{ needs.get-pack-info.outputs.default_assets_version }}-
             ${{ runner.os }}-
@@ -190,11 +190,7 @@ jobs:
         with:
           micromamba-version: 'latest'
           environment-name: converter
-          create-args: >-
-            python=3.11
-            pillow
-            requests
-            pyyaml
+          create-args: python=3.11 pillow requests pyyaml
           cache-environment: true
       - name: Install dependencies
         run: |
