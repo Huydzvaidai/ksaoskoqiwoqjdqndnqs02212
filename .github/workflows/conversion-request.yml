@@ -158,63 +158,31 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
-      - name: Setup Node.js
+      - name: Enable default asset cache
+        id: cache-default-assets
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/work/java2bedrock.sh/java2bedrock.sh/staging/default_assets.zip
+          key: ${{ runner.os }}-${{ needs.get-pack-info.outputs.default_assets_version }}
+      - name: Install NodeJS
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      
-      - name: Setup Python
+          node-version: 20
+      - name: Install Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
-      
-      - name: Install system dependencies
+          python-version: '3.11'
+      - name: Install dependencies
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq moreutils zip unzip imagemagick
-      
-      - name: Cache Python packages
-        id: cache-python
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-v1
-      
-      - name: Cache Node global packages
-        id: cache-node-global
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm-global
-          key: ${{ runner.os }}-node-global-v1
-      
-      - name: Cache icon generator dependencies
-        id: cache-icon-gen
-        uses: actions/cache@v4
-        with:
-          path: tools/node_modules
-          key: ${{ runner.os }}-icon-gen-${{ hashFiles('tools/package.json') }}
-      
-      - name: Install Python packages
-        run: |
+          sudo apt-get update || sudo apt-get update --fix-missing
+          sudo apt-get install -y moreutils zip unzip imagemagick
+          yarn global add spritesheet-js
           pip install Pillow requests jproperties pyyaml
-      
-      - name: Setup npm global path
-        run: |
-          mkdir -p ~/.npm-global
-          npm config set prefix '~/.npm-global'
-          echo "$HOME/.npm-global/bin" >> $GITHUB_PATH
-      
-      - name: Install spritesheet-js
-        run: |
-          npm install -g spritesheet-js
-      
       - name: Install icon generator dependencies
         run: |
           cd tools
-          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true npm install
+          npm install
           cd ..
-      
       - name: Convert Pack
         id: convert-pack
         continue-on-error: false
@@ -249,7 +217,6 @@ jobs:
         run: |
           mkdir -p staging
           mkdir -p staging/other
-          
           cp converter.sh staging/
           cp manager.py staging/
           cp armor.py staging/
@@ -272,7 +239,6 @@ jobs:
           cp sound.py staging/
           cp font.py staging/
           cp font_sprite.py staging/
-          
           cp other/auto_sprites.py staging/other/
           cp other/remove.py staging/other/
           cp other/animations_clear.py staging/other/
@@ -286,24 +252,23 @@ jobs:
           cp other/layer_armor.py staging/other/
           cp other/json_unicode.py staging/other/
           cp other/encrypt.py staging/other/
-          
           mkdir -p staging/animations
           cp animations/anim_2d.py staging/animations/
           mkdir -p staging/tools
           cp -r tools/* staging/tools/
-          
           cd staging
           chmod +x converter.sh
-          curl -#L -o input_pack.zip "${PACK_URL}"
+          COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o input_pack.zip "${PACK_URL}"
           MERGE_PACK_FILE="${MERGE_PACK_URL}"
           if [ "${MERGE_PACK_URL}" != "null" ]; then
-            curl -#L -o merge_pack.zip "${MERGE_PACK_URL}"
+            COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o merge_pack.zip "${MERGE_PACK_URL}"
             MERGE_PACK_FILE="merge_pack.zip"
           fi
           ./converter.sh input_pack.zip -w "false" -m ${MERGE_PACK_FILE} -a ${ATTACHABLE_MATERIAL} -b ${BLOCK_MATERIAL} -f ${DEFAULT_PACK_URL} -v ${DEFAULT_ASSETS_VERSION} -r ${RENAME_MODEL_FILES} -s ${ARCHIVE_SCRATCH}
           
+          # Encryption after conversion
           if [ "${ENCRYPT_PACK}" = "true" ]; then
-            python3 other/encrypt.py bedrock.mcpack bedrock_encrypted.mcpack || exit 1
+            python other/encrypt.py bedrock.mcpack bedrock_encrypted.mcpack || exit 1
             if [ -f "bedrock_encrypted.mcpack" ]; then
               rm -f bedrock.mcpack
               mv bedrock_encrypted.mcpack bedrock.mcpack
@@ -312,7 +277,6 @@ jobs:
               exit 1
             fi
           fi
-      
       - name: Upload converted pack
         uses: actions/upload-artifact@v4
         with:
@@ -324,7 +288,6 @@ jobs:
             staging/mappings.json
             staging/mappingsv1.json
             staging/mappingsv2.json
-  
   post-result:
     runs-on: ubuntu-latest
     needs: convert-pack
@@ -353,7 +316,6 @@ jobs:
         uses: peter-evans/close-issue@v3
         with:
           issue-number: ${{ github.event.issue.number }}
-  
   conversion-failed:
     runs-on: ubuntu-latest
     needs: [get-pack-info, convert-pack, post-result]
