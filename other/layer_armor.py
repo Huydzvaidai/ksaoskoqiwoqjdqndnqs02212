@@ -3,6 +3,7 @@ import re
 import yaml
 import random
 import string
+import shutil
 
 def remove_ia_generated_armors():
     folder_path = "pack/assets/minecraft/optifine/cit/ia_generated_armors"
@@ -49,17 +50,7 @@ def process_armor_items():
     
     print(f"Đã đọc file yml, kích thước: {len(content)} bytes")
     
-    # In ra 500 ký tự đầu để xem format
-    print("=== 500 ký tự đầu của file ===")
-    print(content[:500])
-    print("=== Kết thúc preview ===")
-    
-    # Tìm một ví dụ helmet để test
-    helmet_sample = content[content.find("helmet"):content.find("helmet")+100] if "helmet" in content else "Không tìm thấy helmet"
-    print(f"=== Mẫu helmet: {helmet_sample} ===")
-    
     # Pattern mới cho format: namespace:item_name: số
-    # Ví dụ: plny_luminite_set:luminite_sethelmet: 10017
     armor_patterns = [
         r'(\S+?):([\w]+helmet):\s*(\d+)',
         r'(\S+?):([\w]+chestplate):\s*(\d+)',
@@ -84,121 +75,83 @@ def process_armor_items():
             if file.endswith('.yml'):
                 yml_files.append(os.path.join(root, file))
     
-    print(f"\nTìm thấy {len(yml_files)} file yml trong {contents_folder} (đệ quy):")
-    for yml_file in yml_files[:5]:  # In ra 5 file đầu
-        print(f"  - {yml_file}")
+    print(f"\nTìm thấy {len(yml_files)} file yml trong {contents_folder} (đệ quy)")
     
-    # Đọc thử 1 file yml để xem cấu trúc
-    if yml_files:
-        sample_yml = yml_files[0]
-        print(f"\n=== Cấu trúc file mẫu: {os.path.basename(sample_yml)} ===")
-        try:
-            with open(sample_yml, 'r', encoding='utf-8') as f:
-                sample_data = yaml.safe_load(f)
-            print(f"Keys: {list(sample_data.keys()) if sample_data else 'None'}")
-            if sample_data and 'items' in sample_data:
-                items_list = list(sample_data['items'].keys())[:5]
-                print(f"Items (5 đầu): {items_list}")
-        except Exception as e:
-            print(f"Lỗi đọc file mẫu: {e}")
-        print("=== Kết thúc cấu trúc file mẫu ===\n")
+    # Dictionary để lưu mapping layer_name -> random_name (tránh trùng lặp)
+    layer_mapping = {}
     
     for namespace, item_name, custom_model_data in armor_items:
         file_name = f"{namespace}_{item_name}"
         
-        print(f"\n--- Xử lý: {file_name} ---")
-        
         found_layers = False
         random_name = None
+        layer_1_original = None
+        layer_2_original = None
         
         for yml_file_path in yml_files:
+            try:
+                with open(yml_file_path, 'r', encoding='utf-8') as f:
+                    yml_data = yaml.safe_load(f)
                 
-                try:
-                    with open(yml_file_path, 'r', encoding='utf-8') as f:
-                        yml_data = yaml.safe_load(f)
-                    
-                    if yml_data and 'info' in yml_data and 'items' in yml_data:
-                        if item_name in yml_data['items']:
-                            print(f"Tìm thấy '{item_name}' trong file: {yml_file_path}")
-                            
-                            if 'armors_rendering' in yml_data:
-                                print(f"  Có armors_rendering")
-                                for armor_key, armor_data in yml_data['armors_rendering'].items():
-                                    if 'layer_1' in armor_data and 'layer_2' in armor_data:
-                                        layer_1 = armor_data['layer_1']
-                                        layer_2 = armor_data['layer_2']
-                                        
-                                        print(f"  Tìm thấy layers: {layer_1}, {layer_2}")
-                                        
-                                        layer_1_name = layer_1.split('/')[-1]
-                                        layer_2_name = layer_2.split('/')[-1]
-                                        
-                                        random_name = generate_random_name()
-                                        
-                                        new_layer_1 = f"{random_name}_1"
-                                        new_layer_2 = f"{random_name}_2"
-                                        
-                                        layer_1_file = os.path.join(cit_folder, f"{new_layer_1}.png")
-                                        layer_2_file = os.path.join(cit_folder, f"{new_layer_2}.png")
-                                        
-                                        with open(layer_1_file, 'w', encoding='utf-8') as f:
-                                            f.write("")
-                                        with open(layer_2_file, 'w', encoding='utf-8') as f:
-                                            f.write("")
-                                        
-                                        print(f"  Layer 1: {layer_1_name} -> {new_layer_1}.png")
-                                        print(f"  Layer 2: {layer_2_name} -> {new_layer_2}.png")
-                                        
-                                        found_layers = True
-                                        break
-                            
-                            if not found_layers and 'equipments' in yml_data:
-                                print(f"  Có equipments")
-                                for equip_key, equip_data in yml_data['equipments'].items():
-                                    if 'layer_1' in equip_data and 'layer_2' in equip_data:
-                                        layer_1 = equip_data['layer_1']
-                                        layer_2 = equip_data['layer_2']
-                                        
-                                        print(f"  Tìm thấy layers: {layer_1}, {layer_2}")
-                                        
-                                        layer_1_name = layer_1.split('/')[-1]
-                                        layer_2_name = layer_2.split('/')[-1]
-                                        
-                                        random_name = generate_random_name()
-                                        
-                                        new_layer_1 = f"{random_name}_1"
-                                        new_layer_2 = f"{random_name}_2"
-                                        
-                                        layer_1_file = os.path.join(cit_folder, f"{new_layer_1}.png")
-                                        layer_2_file = os.path.join(cit_folder, f"{new_layer_2}.png")
-                                        
-                                        with open(layer_1_file, 'w', encoding='utf-8') as f:
-                                            f.write("")
-                                        with open(layer_2_file, 'w', encoding='utf-8') as f:
-                                            f.write("")
-                                        
-                                        print(f"  Layer 1: {layer_1_name} -> {new_layer_1}.png")
-                                        print(f"  Layer 2: {layer_2_name} -> {new_layer_2}.png")
-                                        
-                                        found_layers = True
-                                        break
-                            
-                            if found_layers:
-                                break
-                except Exception as e:
-                    print(f"  Lỗi khi đọc {yml_file}: {e}")
-                    pass
+                if yml_data and 'info' in yml_data and 'items' in yml_data:
+                    if item_name in yml_data['items']:
+                        
+                        if 'armors_rendering' in yml_data:
+                            for armor_key, armor_data in yml_data['armors_rendering'].items():
+                                if 'layer_1' in armor_data and 'layer_2' in armor_data:
+                                    layer_1_original = armor_data['layer_1']
+                                    layer_2_original = armor_data['layer_2']
+                                    found_layers = True
+                                    break
+                        
+                        if not found_layers and 'equipments' in yml_data:
+                            for equip_key, equip_data in yml_data['equipments'].items():
+                                if 'layer_1' in equip_data and 'layer_2' in equip_data:
+                                    layer_1_original = equip_data['layer_1']
+                                    layer_2_original = equip_data['layer_2']
+                                    found_layers = True
+                                    break
+                        
+                        if found_layers:
+                            break
+            except Exception as e:
+                pass
         
-        if found_layers and random_name:
+        if found_layers and layer_1_original and layer_2_original:
+            layer_1_name = layer_1_original.split('/')[-1]
+            layer_2_name = layer_2_original.split('/')[-1]
+            
+            # Kiểm tra xem layer này đã được xử lý chưa
+            if layer_1_name not in layer_mapping:
+                random_name = generate_random_name()
+                layer_mapping[layer_1_name] = f"{random_name}_1"
+                layer_mapping[layer_2_name] = f"{random_name}_2"
+                
+                # Tìm và copy file ảnh gốc
+                layer_1_src = f"pack/{layer_1_original}.png"
+                layer_2_src = f"pack/{layer_2_original}.png"
+                
+                layer_1_dst = os.path.join(cit_folder, f"{random_name}_1.png")
+                layer_2_dst = os.path.join(cit_folder, f"{random_name}_2.png")
+                
+                if os.path.exists(layer_1_src):
+                    shutil.copy2(layer_1_src, layer_1_dst)
+                    print(f"Copy: {layer_1_src} -> {layer_1_dst}")
+                
+                if os.path.exists(layer_2_src):
+                    shutil.copy2(layer_2_src, layer_2_dst)
+                    print(f"Copy: {layer_2_src} -> {layer_2_dst}")
+            else:
+                random_name = layer_mapping[layer_1_name].replace("_1", "")
+            
+            # Tạo file .properties
             properties_file = os.path.join(cit_folder, f"{file_name}.properties")
             
             with open(properties_file, 'w', encoding='utf-8') as f:
                 f.write(f"texture.leather_layer_1={random_name}_1.png\n")
                 f.write(f"texture.leather_layer_2={random_name}_2.png\n")
             
-            print(f"Đã tạo file: {properties_file}")
-        else:
-            print(f"  Không tìm thấy layers cho {item_name}")
+            print(f"Đã tạo: {properties_file}")
 
 if __name__ == "__main__":
     remove_ia_generated_armors()
