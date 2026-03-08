@@ -6,7 +6,7 @@ on:
 
 jobs:
   get-pack-info:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-core
     if: github.event.label.name == 'conversion'
     permissions:
       issues: read
@@ -147,7 +147,7 @@ jobs:
           echo "ENCRYPT_PACK=$(jq -r '.encrypt_pack' inputs.json)" >> $GITHUB_OUTPUT
           
   convert-pack:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-core
     needs: get-pack-info
     permissions:
       contents: read
@@ -157,52 +157,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
-      
-      - name: Setup Node.js
+          fetch-depth: 0
+      - name: Enable default asset cache
+        id: cache-default-assets
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/work/java2bedrock.sh/java2bedrock.sh/staging/default_assets.zip
+          key: ${{ runner.os }}-${{ needs.get-pack-info.outputs.default_assets_version }}
+      - name: Install NodeJS
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      
-      - name: Setup Python
+      - name: Install Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
-      
-      - name: Cache pip packages
-        id: cache-pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-v1
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      
-      - name: Cache npm global
-        id: cache-npm
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-npm-v1
-          restore-keys: |
-            ${{ runner.os }}-npm-
-      
-      - name: Cache tools node_modules
-        id: cache-tools
-        uses: actions/cache@v4
-        with:
-          path: tools/node_modules
-          key: ${{ runner.os }}-tools-v1
-          restore-keys: |
-            ${{ runner.os }}-tools-
-      
+          python-version: '3.11'
       - name: Install dependencies
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq moreutils zip unzip imagemagick
+          sudo apt-get update || sudo apt-get update --fix-missing
+          sudo apt-get install -y moreutils zip unzip imagemagick
+          yarn global add spritesheet-js
           pip install Pillow requests jproperties pyyaml
-          npm install -g spritesheet-js
-      
       - name: Install icon generator dependencies
         run: |
           cd tools
