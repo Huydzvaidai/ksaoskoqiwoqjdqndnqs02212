@@ -24,6 +24,9 @@ def process_armor_items():
     contents_folder = "pack/contents"
     storage_folder = "pack/storage"
     
+    print(f"Kiểm tra thư mục contents: {os.path.exists(contents_folder)}")
+    print(f"Kiểm tra thư mục storage: {os.path.exists(storage_folder)}")
+    
     if not os.path.exists(contents_folder):
         print(f"Thư mục không tồn tại: {contents_folder}")
         return
@@ -34,12 +37,16 @@ def process_armor_items():
     
     yml_path = "pack/storage/items_ids_cache.yml"
     
+    print(f"Kiểm tra file yml: {os.path.exists(yml_path)}")
+    
     if not os.path.exists(yml_path):
         print(f"File không tồn tại: {yml_path}")
         return
     
     with open(yml_path, 'r', encoding='utf-8') as f:
         content = f.read()
+    
+    print(f"Đã đọc file yml, kích thước: {len(content)} bytes")
     
     armor_patterns = [r'(\S+):(\S+_helmet):\s*(\d+)', 
                      r'(\S+):(\S+_chestplate):\s*(\d+)',
@@ -50,6 +57,8 @@ def process_armor_items():
     for pattern in armor_patterns:
         matches = re.findall(pattern, content)
         armor_items.extend(matches)
+    
+    print(f"Tìm thấy {len(armor_items)} armor items")
     
     cit_folder = "pack/assets/minecraft/optifine/cit/ia_generated_armors"
     os.makedirs(cit_folder, exist_ok=True)
