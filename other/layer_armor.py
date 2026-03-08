@@ -134,15 +134,23 @@ def process_armor_items():
                 layer_1_dst = os.path.join(cit_folder, f"{random_name}_1.png")
                 layer_2_dst = os.path.join(cit_folder, f"{random_name}_2.png")
                 
+                print(f"Tìm layer_1: {layer_1_src} -> Tồn tại: {os.path.exists(layer_1_src)}")
+                print(f"Tìm layer_2: {layer_2_src} -> Tồn tại: {os.path.exists(layer_2_src)}")
+                
                 if os.path.exists(layer_1_src):
                     shutil.copy2(layer_1_src, layer_1_dst)
-                    print(f"Copy: {layer_1_src} -> {layer_1_dst}")
+                    print(f"✓ Copy: {layer_1_src} -> {layer_1_dst}")
+                else:
+                    print(f"✗ Không tìm thấy: {layer_1_src}")
                 
                 if os.path.exists(layer_2_src):
                     shutil.copy2(layer_2_src, layer_2_dst)
-                    print(f"Copy: {layer_2_src} -> {layer_2_dst}")
+                    print(f"✓ Copy: {layer_2_src} -> {layer_2_dst}")
+                else:
+                    print(f"✗ Không tìm thấy: {layer_2_src}")
             else:
                 random_name = layer_mapping[layer_1_name].replace("_1", "")
+                print(f"Dùng lại layer đã có: {layer_1_name} -> {random_name}")
             
             # Tạo file .properties
             properties_file = os.path.join(cit_folder, f"{file_name}.properties")
