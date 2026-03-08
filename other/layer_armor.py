@@ -48,10 +48,14 @@ def process_armor_items():
     
     print(f"Đã đọc file yml, kích thước: {len(content)} bytes")
     
-    armor_patterns = [r'(\S+):(\S+_helmet):\s*(\d+)', 
-                     r'(\S+):(\S+_chestplate):\s*(\d+)',
-                     r'(\S+):(\S+_leggings):\s*(\d+)',
-                     r'(\S+):(\S+_boots):\s*(\d+)']
+    # Pattern mới cho format: namespace:item_name: số
+    # Ví dụ: plny_luminite_set:luminite_sethelmet: 10017
+    armor_patterns = [
+        r'(\S+?):([\w]+helmet):\s*(\d+)',
+        r'(\S+?):([\w]+chestplate):\s*(\d+)',
+        r'(\S+?):([\w]+leggings):\s*(\d+)',
+        r'(\S+?):([\w]+boots):\s*(\d+)'
+    ]
     
     armor_items = []
     for pattern in armor_patterns:
