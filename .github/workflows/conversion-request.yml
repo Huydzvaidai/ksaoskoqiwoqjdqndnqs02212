@@ -1,4 +1,9 @@
 name: Conversion Request
+
+concurrency:
+  group: conversion-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
 on:
   issues:
     types:
@@ -162,22 +167,49 @@ jobs:
         id: cache-default-assets
         uses: actions/cache@v4
         with:
-          path: /home/runner/work/java2bedrock.sh/java2bedrock.sh/staging/default_assets.zip
-          key: ${{ runner.os }}-${{ needs.get-pack-info.outputs.default_assets_version }}
+          path: |
+            /home/runner/work/java2bedrock.sh/java2bedrock.sh/staging/default_assets.zip
+            /home/runner/work/java2bedrock.sh/java2bedrock.sh/staging/scratch_files
+          key: ${{ runner.os }}-${{ needs.get-pack-info.outputs.default_assets_version }}-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ needs.get-pack-info.outputs.default_assets_version }}-
+            ${{ runner.os }}-
       - name: Install NodeJS
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'tools/package-lock.json'
       - name: Install Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
+      - name: Setup micromamba for faster package installation
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          micromamba-version: 'latest'
+          environment-name: converter
+          create-args: >-
+            python=3.11
+            pillow
+            requests
+            pyyaml
+          cache-environment: true
       - name: Install dependencies
         run: |
-          sudo apt-get update || sudo apt-get update --fix-missing
-          sudo apt-get install -y moreutils zip unzip imagemagick
-          yarn global add spritesheet-js
-          pip install Pillow requests jproperties pyyaml
+          # Install system packages in parallel
+          sudo apt-get update -qq || sudo apt-get update --fix-missing -qq
+          sudo apt-get install -y -qq moreutils zip unzip imagemagick &
+          
+          # Install Node packages in parallel
+          yarn global add spritesheet-js &
+          
+          # Install jproperties via pip (not available in conda)
+          pip install --no-cache-dir jproperties &
+          
+          # Wait for all background jobs
+          wait
       - name: Install icon generator dependencies
         run: |
           cd tools
@@ -288,6 +320,8 @@ jobs:
             staging/mappings.json
             staging/mappingsv1.json
             staging/mappingsv2.json
+          compression-level: 6
+          retention-days: 7
   post-result:
     runs-on: ubuntu-latest
     needs: convert-pack
