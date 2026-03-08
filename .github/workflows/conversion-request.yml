@@ -148,15 +148,9 @@ jobs:
           
   convert-pack:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/huydzvaidai/bedrock-2/converter:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
     needs: get-pack-info
     permissions:
       contents: read
-      packages: read
     timeout-minutes: 90
     outputs:
       run_id: ${{ steps.get-pack-info.outputs.pack_url }}
@@ -165,14 +159,69 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: Enable default asset cache
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - name: Cache system dependencies
+        id: cache-system
+        uses: actions/cache@v4
+        with:
+          path: |
+            /var/cache/apt
+            /var/lib/apt
+          key: ${{ runner.os }}-system-deps-v1
+      
+      - name: Cache Python packages
+        id: cache-python
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+      
+      - name: Cache Node global packages
+        id: cache-node-global
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/lib/node_modules
+          key: ${{ runner.os }}-node-global-v1
+      
+      - name: Cache icon generator dependencies
+        id: cache-icon-gen
+        uses: actions/cache@v4
+        with:
+          path: tools/node_modules
+          key: ${{ runner.os }}-icon-gen-${{ hashFiles('tools/package-lock.json') }}
+      
+      - name: Cache default assets
         id: cache-default-assets
         uses: actions/cache@v4
         with:
           path: staging/default_assets.zip
-          key: ${{ runner.os }}-${{ needs.get-pack-info.outputs.default_assets_version }}
+          key: ${{ runner.os }}-assets-${{ needs.get-pack-info.outputs.default_assets_version }}
+      
+      - name: Install system dependencies
+        if: steps.cache-system.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq moreutils zip unzip imagemagick
+      
+      - name: Install Python packages
+        if: steps.cache-python.outputs.cache-hit != 'true'
+        run: pip install -r requirements.txt
+      
+      - name: Install spritesheet-js
+        if: steps.cache-node-global.outputs.cache-hit != 'true'
+        run: sudo npm install -g spritesheet-js
       
       - name: Install icon generator dependencies
+        if: steps.cache-icon-gen.outputs.cache-hit != 'true'
         run: |
           cd tools
           npm ci
