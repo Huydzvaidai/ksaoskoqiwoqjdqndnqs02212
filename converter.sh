@@ -201,6 +201,19 @@ fi
 
 status_message completion "Input pack decompressed"
 
+# Run early Python preprocessing tasks in parallel with converter.sh preparation
+status_message process "Running early preprocessing tasks"
+if [ -f "staging/input_pack.zip" ]; then
+    python -c "
+import zipfile, os
+if os.path.exists('staging/input_pack.zip'):
+    with zipfile.ZipFile('staging/input_pack.zip', 'r') as file:
+        file.extractall('pack/')
+    print('[+] Extracted pack for Python processing')
+" &
+    EARLY_EXTRACT_PID=$!
+fi
+
 # exit the script if no input pack exists by checking for a pack.mcmeta file
 if [ ! -f pack.mcmeta ]
 then
