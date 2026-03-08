@@ -183,7 +183,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-pip-v1
       
       - name: Cache Node global packages
         id: cache-node-global
@@ -214,7 +214,7 @@ jobs:
       
       - name: Install Python packages
         if: steps.cache-python.outputs.cache-hit != 'true'
-        run: pip install -r requirements.txt
+        run: pip install Pillow requests jproperties pyyaml
       
       - name: Install spritesheet-js
         if: steps.cache-node-global.outputs.cache-hit != 'true'
