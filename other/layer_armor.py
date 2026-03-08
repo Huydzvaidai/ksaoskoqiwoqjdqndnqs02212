@@ -5,6 +5,9 @@ import random
 import string
 import shutil
 
+if os.path.exists("pack/assets/nexo"):
+    exit()
+
 def remove_ia_generated_armors():
     folder_path = "pack/assets/minecraft/optifine/cit/ia_generated_armors"
     
