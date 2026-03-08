@@ -221,7 +221,7 @@ jobs:
       - name: Install icon generator dependencies
         run: |
           cd tools
-          npm ci
+          npm install
           cd ..
       
       - name: Convert Pack
