@@ -79,6 +79,8 @@ def process_armor_items():
     for namespace, item_name, custom_model_data in armor_items:
         file_name = f"{namespace}_{item_name}"
         
+        print(f"\n--- Xử lý: {file_name} ---")
+        
         found_layers = False
         random_name = None
         
@@ -95,10 +97,13 @@ def process_armor_items():
                             print(f"Tìm thấy '{item_name}' trong file: {yml_file_path}")
                             
                             if 'armors_rendering' in yml_data:
+                                print(f"  Có armors_rendering")
                                 for armor_key, armor_data in yml_data['armors_rendering'].items():
                                     if 'layer_1' in armor_data and 'layer_2' in armor_data:
                                         layer_1 = armor_data['layer_1']
                                         layer_2 = armor_data['layer_2']
+                                        
+                                        print(f"  Tìm thấy layers: {layer_1}, {layer_2}")
                                         
                                         layer_1_name = layer_1.split('/')[-1]
                                         layer_2_name = layer_2.split('/')[-1]
@@ -123,10 +128,13 @@ def process_armor_items():
                                         break
                             
                             if not found_layers and 'equipments' in yml_data:
+                                print(f"  Có equipments")
                                 for equip_key, equip_data in yml_data['equipments'].items():
                                     if 'layer_1' in equip_data and 'layer_2' in equip_data:
                                         layer_1 = equip_data['layer_1']
                                         layer_2 = equip_data['layer_2']
+                                        
+                                        print(f"  Tìm thấy layers: {layer_1}, {layer_2}")
                                         
                                         layer_1_name = layer_1.split('/')[-1]
                                         layer_2_name = layer_2.split('/')[-1]
@@ -152,7 +160,8 @@ def process_armor_items():
                             
                             if found_layers:
                                 break
-                except:
+                except Exception as e:
+                    print(f"  Lỗi khi đọc {yml_file}: {e}")
                     pass
         
         if found_layers and random_name:
@@ -163,6 +172,8 @@ def process_armor_items():
                 f.write(f"texture.leather_layer_2={random_name}_2.png\n")
             
             print(f"Đã tạo file: {properties_file}")
+        else:
+            print(f"  Không tìm thấy layers cho {item_name}")
 
 if __name__ == "__main__":
     remove_ia_generated_armors()
