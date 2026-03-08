@@ -200,30 +200,13 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq moreutils zip unzip imagemagick
-          
-          if [ "${{ steps.cache-pip.outputs.cache-hit }}" != "true" ]; then
-            echo "Installing Python packages..."
-            pip install Pillow requests jproperties pyyaml
-          else
-            echo "✓ Python packages from cache"
-          fi
-          
-          if [ "${{ steps.cache-npm.outputs.cache-hit }}" != "true" ]; then
-            echo "Installing spritesheet-js..."
-            npm install -g spritesheet-js
-          else
-            echo "✓ spritesheet-js from cache"
-          fi
+          pip install Pillow requests jproperties pyyaml
+          npm install -g spritesheet-js
       
       - name: Install icon generator dependencies
         run: |
           cd tools
-          if [ "${{ steps.cache-tools.outputs.cache-hit }}" != "true" ]; then
-            echo "Installing icon generator dependencies..."
-            npm install
-          else
-            echo "✓ Icon generator dependencies from cache"
-          fi
+          npm install
           cd ..
       - name: Convert Pack
         id: convert-pack
