@@ -239,7 +239,6 @@ jobs:
           cp sound.py staging/
           cp font.py staging/
           cp font_sprite.py staging/
-          cp converter_fast.py staging/
           cp other/auto_sprites.py staging/other/
           cp other/remove.py staging/other/
           cp other/animations_clear.py staging/other/
@@ -250,6 +249,7 @@ jobs:
           cp other/merge_models.py staging/other/
           cp other/mappings.py staging/other/
           cp other/gui.py staging/other/
+          cp other/layer_armor.py staging/other/
           cp other/json_unicode.py staging/other/
           cp other/encrypt.py staging/other/
           mkdir -p staging/animations
@@ -257,13 +257,14 @@ jobs:
           mkdir -p staging/tools
           cp -r tools/* staging/tools/
           cd staging
+          chmod +x converter.sh
           COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o input_pack.zip "${PACK_URL}"
           MERGE_PACK_FILE="${MERGE_PACK_URL}"
           if [ "${MERGE_PACK_URL}" != "null" ]; then
             COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o merge_pack.zip "${MERGE_PACK_URL}"
             MERGE_PACK_FILE="merge_pack.zip"
           fi
-          python3 converter_fast.py input_pack.zip -w "false" -m ${MERGE_PACK_FILE} -a ${ATTACHABLE_MATERIAL} -b ${BLOCK_MATERIAL} -f ${DEFAULT_PACK_URL} -v ${DEFAULT_ASSETS_VERSION} -r ${RENAME_MODEL_FILES} -s ${ARCHIVE_SCRATCH}
+          ./converter.sh input_pack.zip -w "false" -m ${MERGE_PACK_FILE} -a ${ATTACHABLE_MATERIAL} -b ${BLOCK_MATERIAL} -f ${DEFAULT_PACK_URL} -v ${DEFAULT_ASSETS_VERSION} -r ${RENAME_MODEL_FILES} -s ${ARCHIVE_SCRATCH}
           
           # Encryption after conversion
           if [ "${ENCRYPT_PACK}" = "true" ]; then

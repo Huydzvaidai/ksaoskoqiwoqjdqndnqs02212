@@ -15,6 +15,10 @@ try:
         import item_non_offhand
 except Exception as e: pass
 try:
+    result = subprocess.run(["python", "other/layer_armor.py"], capture_output=True, text=True)
+except Exception as e: 
+    pass
+try:
     if os.getenv("ARMOR_CONVERSION") == "true" or all_items_enabled or all_items_non_offhand_enabled: 
         import armor
 except Exception as e: pass
