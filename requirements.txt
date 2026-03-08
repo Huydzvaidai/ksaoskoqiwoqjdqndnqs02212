@@ -1,4 +1,0 @@
-Pillow>=10.0.0
-requests>=2.31.0
-jproperties>=2.1.1
-pyyaml>=6.0
