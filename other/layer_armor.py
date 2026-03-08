@@ -13,11 +13,8 @@ def remove_ia_generated_armors():
             file_path = os.path.join(folder_path, filename)
             if os.path.isfile(file_path):
                 os.remove(file_path)
-                print(f"Đã xóa file: {file_path}")
-        print(f"Đã xóa tất cả các file trong: {folder_path}")
     else:
         os.makedirs(folder_path, exist_ok=True)
-        print(f"Đã tạo thư mục: {folder_path}")
 
 def generate_random_name():
     return ''.join(random.choices(string.ascii_lowercase, k=8))
@@ -27,23 +24,18 @@ def process_armor_items():
     storage_folder = "pack/storage"
     
     if not os.path.exists(contents_folder):
-        print(f"Thư mục không tồn tại: {contents_folder}")
         return
     
     if not os.path.exists(storage_folder):
-        print(f"Thư mục không tồn tại: {storage_folder}")
         return
     
     yml_path = "pack/storage/items_ids_cache.yml"
     
     if not os.path.exists(yml_path):
-        print(f"File không tồn tại: {yml_path}")
         return
     
     with open(yml_path, 'r', encoding='utf-8') as f:
         content = f.read()
-    
-    print(f"Đã đọc file yml, kích thước: {len(content)} bytes")
     
     # Parse file để tìm material type cho mỗi armor item
     armor_to_material = {}  # {namespace:item_name: material_type}
@@ -74,8 +66,6 @@ def process_armor_items():
                 full_name = f"{namespace}:{item_name}"
                 armor_to_material[full_name] = current_material
     
-    print(f"Đã map {len(armor_to_material)} armor items với material types")
-    
     armor_patterns = [
         r'(\S+?):([\w]+helmet):\s*(\d+)',
         r'(\S+?):([\w]+chestplate):\s*(\d+)',
@@ -88,8 +78,6 @@ def process_armor_items():
         matches = re.findall(pattern, content)
         armor_items.extend(matches)
     
-    print(f"Tìm thấy {len(armor_items)} armor items")
-    
     cit_folder = "pack/assets/minecraft/optifine/cit/ia_generated_armors"
     os.makedirs(cit_folder, exist_ok=True)
     
@@ -100,10 +88,7 @@ def process_armor_items():
             if file.endswith('.yml'):
                 yml_files.append(os.path.join(root, file))
     
-    print(f"Tìm thấy {len(yml_files)} file yml trong {contents_folder} (đệ quy)")
-    
     # Bước 1: Thu thập tất cả layers và copy ảnh vào ia_generated_armors
-    print("\n=== BƯỚC 1: Copy tất cả layer images ===")
     all_layers = set()
     layer_to_armor = {}
     
@@ -158,19 +143,16 @@ def process_armor_items():
                                 if layer_1_src:
                                     dst = os.path.join(cit_folder, f"{layer_1_name}.png")
                                     shutil.copy2(layer_1_src, dst)
-                                    print(f"✓ Copy: {layer_1_name}.png")
                                 
                                 if layer_2_src:
                                     dst = os.path.join(cit_folder, f"{layer_2_name}.png")
                                     shutil.copy2(layer_2_src, dst)
-                                    print(f"✓ Copy: {layer_2_name}.png")
                             
                             break
             except:
                 pass
     
     # Bước 2: Random name và tạo .properties
-    print("\n=== BƯỚC 2: Random name và tạo .properties ===")
     layer_mapping = {}
     
     for namespace, item_name, custom_model_data in armor_items:
@@ -214,11 +196,9 @@ def process_armor_items():
                                 
                                 if os.path.exists(old_1):
                                     os.rename(old_1, new_1)
-                                    print(f"Rename: {layer_1_name}.png -> {random_name}_1.png")
                                 
                                 if os.path.exists(old_2):
                                     os.rename(old_2, new_2)
-                                    print(f"Rename: {layer_2_name}.png -> {random_name}_2.png")
                             
                             # Tạo .properties
                             file_name = f"{namespace}_{item_name}"
@@ -234,7 +214,6 @@ def process_armor_items():
                                 f.write(f"texture.leather_layer_1={random_name}_1.png\n")
                                 f.write(f"texture.leather_layer_2={random_name}_2.png\n")
                             
-                            print(f"Tạo: {file_name}.properties ({armor_material})")
                             break
             except:
                 pass
