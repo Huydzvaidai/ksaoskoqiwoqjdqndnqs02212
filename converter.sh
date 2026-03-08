@@ -102,7 +102,7 @@ user_input () {
 
 # wait for jobs function prevents the next job from starting until there is a free CPU thread
 wait_for_jobs () {
-  while test $(jobs -p | wc -w) -ge "$((2*$(nproc)))"; do wait -n; done
+  while test $(jobs -p | wc -w) -ge "$((8*$(nproc)))"; do wait -n; done
 }
 
 # ensure input pack exists
@@ -664,10 +664,8 @@ fi
 convert -size 16x16 xc:\#FFFFFF ./assets/minecraft/textures/0.png
 
 # make sure we crop all mcmeta associated png files
-status_message process "Cropping animated textures"
-for i in $(find ./assets/**/textures -type f -name "*.mcmeta" | sed 's/\.mcmeta//'); do 
-convert ${i} -set option:distort:viewport "%[fx:min(w,h)]x%[fx:min(w,h)]" -distort affine "0,0 0,0" -define png:format=png8 -clamp ${i} 2> /dev/null
-done
+status_message process "Cropping animated textures in parallel"
+find ./assets/**/textures -type f -name "*.mcmeta" | sed 's/\.mcmeta//' | xargs -P $(nproc) -I {} sh -c 'convert {} -set option:distort:viewport "%[fx:min(w,h)]x%[fx:min(w,h)]" -distort affine "0,0 0,0" -define png:format=png8 -clamp {} 2> /dev/null'
 
 status_message completion "Initial pack setup complete\n"
 
@@ -733,8 +731,8 @@ do
         "elements": ($jelements[])
       } + (if $jdisplay then ({"display": ($jdisplay[])}) else {} end)
       ' | sponge ${file}
-      echo >> scratch_files/count.csv
-      local tot_pos=$(wc -l < scratch_files/count.csv)
+      echo >> "scratch_files/count_${gid}.csv"
+      local tot_pos=$(find scratch_files -name 'count_*.csv' -type f | wc -l)
       status_message completion "Located all parental info for Child ${gid}\n$(ProgressBar ${tot_pos} ${_end})"
       echo
     # check if this is a 2d item dervived from ./assets/minecraft/models/builtin/generated
@@ -749,17 +747,17 @@ do
       mkdir -p "./target/rp/textures/${namespace}/${model_path}"
       cp "${texture_0}" "./target/rp/textures/${namespace}/${model_path}/${model_name}.png"
       # add texture to item atlas
-      echo "${path_hash},textures/${namespace}/${model_path}/${model_name}" >> scratch_files/icons.csv
-      echo "${gid}" >> scratch_files/generated.csv
-      echo >> scratch_files/count.csv
-      local tot_pos=$(wc -l < scratch_files/count.csv)
+      echo "${path_hash},textures/${namespace}/${model_path}/${model_name}" >> "scratch_files/icons_${gid}.csv"
+      echo "${gid}" >> "scratch_files/generated_${gid}.csv"
+      echo >> "scratch_files/count_${gid}.csv"
+      local tot_pos=$(find scratch_files -name 'count_*.csv' -type f | wc -l)
       status_message completion "Located all parental info for 2D Child ${gid}\n$(ProgressBar ${tot_pos} ${_end})"
       echo
     # otherwise, remove it from our config
     else
-      echo "${gid}" >> scratch_files/deleted.csv
-      echo >> scratch_files/count.csv
-      local tot_pos=$(wc -l < scratch_files/count.csv)
+      echo "${gid}" >> "scratch_files/deleted_${gid}.csv"
+      echo >> "scratch_files/count_${gid}.csv"
+      local tot_pos=$(find scratch_files -name 'count_*.csv' -type f | wc -l)
       status_message critical "Deleting ${gid} from config as no suitable parent information was found\n$(ProgressBar ${tot_pos} ${_end})"
       echo
     fi
@@ -770,6 +768,14 @@ do
 
 done < scratch_files/pa.csv
 wait # wait for all the jobs to finish
+
+# Merge per-job CSV files into single files
+status_message process "Merging parallel job results"
+cat scratch_files/generated_*.csv 2>/dev/null > scratch_files/generated.csv 2>/dev/null || true
+cat scratch_files/icons_*.csv 2>/dev/null > scratch_files/icons.csv 2>/dev/null || true
+cat scratch_files/deleted_*.csv 2>/dev/null > scratch_files/deleted.csv 2>/dev/null || true
+rm -f scratch_files/generated_*.csv scratch_files/icons_*.csv scratch_files/deleted_*.csv scratch_files/count_*.csv 2>/dev/null || true
+status_message completion "Parallel job results merged"
 
 # update generated models in config
 if [[ -f scratch_files/generated.csv ]]
@@ -1225,8 +1231,8 @@ do
       ' ${file} | sponge ./target/rp/attachables/${namespace}/${model_path}/${model_name}.json
 
       # progress
-      echo >> scratch_files/count.csv
-      local tot_pos=$((cur_pos + $(wc -l < scratch_files/count.csv)))
+      echo >> "scratch_files/count2_${gid}.csv"
+      local tot_pos=$((cur_pos + $(find scratch_files -name 'count2_*.csv' -type f | wc -l)))
       status_message completion "${gid} converted\n$(ProgressBar ${tot_pos} ${_end})"
       echo
    }
@@ -1236,12 +1242,15 @@ do
 done < scratch_files/all.csv
 wait # wait for all the jobs to finish
 
+# Cleanup per-job count files from model conversion
+rm -f scratch_files/count2_*.csv 2>/dev/null || true
+
 
 
 
 # Ensure images are in the correct color space
-status_message process "Setting all images to png8"
-find ./target/rp/textures -name '*.png' -exec mogrify -define png:format=png8  {} +
+status_message process "Setting all images to png8 in parallel"
+find ./target/rp/textures -name '*.png' | xargs -P $(nproc) -I {} mogrify -define png:format=png8 {}
 status_message completion "All images set to png8"
 
 if [[ ${rename_model_files} == "true" ]]
