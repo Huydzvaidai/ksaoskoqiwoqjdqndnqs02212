@@ -164,24 +164,98 @@ jobs:
         with:
           path: /home/runner/work/java2bedrock.sh/java2bedrock.sh/staging/default_assets.zip
           key: ${{ runner.os }}-${{ needs.get-pack-info.outputs.default_assets_version }}
+      
+      - name: Cache system dependencies
+        id: cache-system-deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            /var/cache/apt
+            /var/lib/apt
+          key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/conversion-request.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
+      
+      - name: Cache pip packages
+        id: cache-pip
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            /opt/hostedtoolcache/Python/*/x64/lib/python*/site-packages
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}-v2
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Cache npm packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.yarn
+            ~/.config/yarn/global
+            /usr/local/share/.config/yarn/global
+            tools/node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('tools/package-lock.json', 'tools/package.json') }}-v2
+          restore-keys: |
+            ${{ runner.os }}-npm-
+      
       - name: Install NodeJS
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'tools/package-lock.json'
+      
       - name: Install Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install dependencies
+          cache: 'pip'
+          cache-dependency-path: 'requirements.txt'
+      - name: Install system dependencies
+        if: steps.cache-system-deps.outputs.cache-hit != 'true'
         run: |
-          sudo apt-get update || sudo apt-get update --fix-missing
-          sudo apt-get install -y moreutils zip unzip imagemagick
-          yarn global add spritesheet-js
-          pip install Pillow requests jproperties pyyaml
+          sudo apt-get update -qq || sudo apt-get update --fix-missing -qq
+          sudo apt-get install -y -qq moreutils zip unzip imagemagick
+      
+      - name: Verify system dependencies
+        if: steps.cache-system-deps.outputs.cache-hit == 'true'
+        run: |
+          echo "✓ System dependencies loaded from cache"
+          which moreutils zip unzip convert || sudo apt-get install -y -qq moreutils zip unzip imagemagick
+      
+      - name: Install Node packages
+        id: install-node
+        run: |
+          if ! command -v spritesheet-js &> /dev/null; then
+            echo "Installing spritesheet-js..."
+            yarn global add spritesheet-js
+          else
+            echo "✓ spritesheet-js already installed"
+          fi
+      
+      - name: Install Python packages
+        if: steps.cache-pip.outputs.cache-hit != 'true'
+        run: |
+          echo "Installing Python packages..."
+          pip install -r requirements.txt
+      
+      - name: Verify Python packages
+        if: steps.cache-pip.outputs.cache-hit == 'true'
+        run: |
+          echo "✓ Python packages loaded from cache"
+      
       - name: Install icon generator dependencies
+        id: install-icon-gen
         run: |
           cd tools
-          npm install
+          if [ ! -d "node_modules" ] || [ ! -f "node_modules/.package-lock.json" ]; then
+            echo "Installing icon generator dependencies..."
+            npm ci
+          else
+            echo "✓ Icon generator dependencies already installed"
+          fi
           cd ..
       - name: Convert Pack
         id: convert-pack
@@ -215,47 +289,63 @@ jobs:
           JSON_UNICODE_CONVERSION: ${{ needs.get-pack-info.outputs.json_unicode_conversion }}
           ENCRYPT_PACK: ${{ needs.get-pack-info.outputs.encrypt_pack }}
         run: |
+          # Setup tmpfs for faster I/O
+          sudo mkdir -p /mnt/ramdisk
+          sudo mount -t tmpfs -o size=4G tmpfs /mnt/ramdisk
+          
           mkdir -p staging
           mkdir -p staging/other
-          cp converter.sh staging/
-          cp manager.py staging/
-          cp armor.py staging/
-          cp item.py staging/
-          cp item_utils.py staging/
-          cp item_non_offhand.py staging/
-          cp item_non_offhand_utils.py staging/
-          cp bow.py staging/
-          cp bow_util.py staging/
-          cp bow2d.py staging/
-          cp bow_non_offhand.py staging/
-          cp bow_non_offhand_utils.py staging/
-          cp crossbow.py staging/
-          cp crossbow_util.py staging/
-          cp crossbow_non_offhand.py staging/
-          cp crossbow_non_offhand_utils.py staging/
-          cp shield.py staging/
-          cp shield_util.py staging/
-          cp blocks.py staging/
-          cp sound.py staging/
-          cp font.py staging/
-          cp font_sprite.py staging/
-          cp other/auto_sprites.py staging/other/
-          cp other/remove.py staging/other/
-          cp other/animations_clear.py staging/other/
-          cp other/group_resolve.py staging/other/
-          cp other/attachables_dupe.py staging/other/
-          cp other/random_name.py staging/other/
-          cp other/directory_confusion.py staging/other/
-          cp other/merge_models.py staging/other/
-          cp other/mappings.py staging/other/
-          cp other/gui.py staging/other/
-          cp other/layer_armor.py staging/other/
-          cp other/json_unicode.py staging/other/
-          cp other/encrypt.py staging/other/
+          
+          # Copy files in parallel for faster setup
+          (
+            cp converter.sh staging/ &
+            cp manager.py staging/ &
+            cp armor.py staging/ &
+            cp item.py staging/ &
+            cp item_utils.py staging/ &
+            cp item_non_offhand.py staging/ &
+            cp item_non_offhand_utils.py staging/ &
+            cp bow.py staging/ &
+            cp bow_util.py staging/ &
+            cp bow2d.py staging/ &
+            cp bow_non_offhand.py staging/ &
+            cp bow_non_offhand_utils.py staging/ &
+            cp crossbow.py staging/ &
+            cp crossbow_util.py staging/ &
+            cp crossbow_non_offhand.py staging/ &
+            cp crossbow_non_offhand_utils.py staging/ &
+            cp shield.py staging/ &
+            cp shield_util.py staging/ &
+            cp blocks.py staging/ &
+            cp sound.py staging/ &
+            cp font.py staging/ &
+            cp font_sprite.py staging/ &
+            wait
+          )
+          
+          (
+            cp other/auto_sprites.py staging/other/ &
+            cp other/remove.py staging/other/ &
+            cp other/animations_clear.py staging/other/ &
+            cp other/group_resolve.py staging/other/ &
+            cp other/attachables_dupe.py staging/other/ &
+            cp other/random_name.py staging/other/ &
+            cp other/directory_confusion.py staging/other/ &
+            cp other/merge_models.py staging/other/ &
+            cp other/mappings.py staging/other/ &
+            cp other/gui.py staging/other/ &
+            cp other/layer_armor.py staging/other/ &
+            cp other/json_unicode.py staging/other/ &
+            cp other/encrypt.py staging/other/ &
+            wait
+          )
+          
           mkdir -p staging/animations
-          cp animations/anim_2d.py staging/animations/
+          cp animations/anim_2d.py staging/animations/ &
           mkdir -p staging/tools
-          cp -r tools/* staging/tools/
+          cp -r tools/* staging/tools/ &
+          wait
+          
           cd staging
           chmod +x converter.sh
           COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o input_pack.zip "${PACK_URL}"
