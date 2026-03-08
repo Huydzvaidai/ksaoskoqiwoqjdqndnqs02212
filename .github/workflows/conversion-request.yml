@@ -171,8 +171,7 @@ jobs:
       - name: Install Python
         uses: actions/setup-python@v5
         with:
-          python-version: 'pypy-3.10'
-          cache: 'pip'
+          python-version: '3.11'
       - name: Install dependencies
         run: |
           sudo apt-get update || sudo apt-get update --fix-missing
