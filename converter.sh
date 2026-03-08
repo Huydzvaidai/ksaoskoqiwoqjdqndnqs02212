@@ -102,7 +102,7 @@ user_input () {
 
 # wait for jobs function prevents the next job from starting until there is a free CPU thread
 wait_for_jobs () {
-  while test $(jobs -p | wc -w) -ge "$((2*$(nproc)))"; do wait -n; done
+  while test $(jobs -p | wc -w) -ge "$((8*$(nproc)))"; do wait -n; done
 }
 
 # ensure input pack exists

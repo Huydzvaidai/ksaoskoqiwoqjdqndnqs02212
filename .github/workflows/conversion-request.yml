@@ -1,7 +1,7 @@
 name: Conversion Request
 
 concurrency:
-  group: conversion-${{ github.event.issue.number }}
+  group: "conversion-${{ github.event.issue.number }}"
   cancel-in-progress: false
 
 on:
