@@ -15,7 +15,8 @@ def remove_ia_generated_armors():
                 print(f"Đã xóa file: {file_path}")
         print(f"Đã xóa tất cả các file trong: {folder_path}")
     else:
-        print(f"Thư mục không tồn tại: {folder_path}")
+        os.makedirs(folder_path, exist_ok=True)
+        print(f"Đã tạo thư mục: {folder_path}")
 
 def generate_random_name():
     return ''.join(random.choices(string.ascii_lowercase, k=8))
@@ -75,6 +76,27 @@ def process_armor_items():
     
     cit_folder = "pack/assets/minecraft/optifine/cit/ia_generated_armors"
     os.makedirs(cit_folder, exist_ok=True)
+    
+    # Liệt kê các file yml trong contents
+    yml_files = [f for f in os.listdir(contents_folder) if f.endswith('.yml')]
+    print(f"\nTìm thấy {len(yml_files)} file yml trong {contents_folder}:")
+    for yml_file in yml_files[:5]:  # In ra 5 file đầu
+        print(f"  - {yml_file}")
+    
+    # Đọc thử 1 file yml để xem cấu trúc
+    if yml_files:
+        sample_yml = os.path.join(contents_folder, yml_files[0])
+        print(f"\n=== Cấu trúc file mẫu: {yml_files[0]} ===")
+        try:
+            with open(sample_yml, 'r', encoding='utf-8') as f:
+                sample_data = yaml.safe_load(f)
+            print(f"Keys: {list(sample_data.keys()) if sample_data else 'None'}")
+            if sample_data and 'items' in sample_data:
+                items_list = list(sample_data['items'].keys())[:5]
+                print(f"Items (5 đầu): {items_list}")
+        except Exception as e:
+            print(f"Lỗi đọc file mẫu: {e}")
+        print("=== Kết thúc cấu trúc file mẫu ===\n")
     
     for namespace, item_name, custom_model_data in armor_items:
         file_name = f"{namespace}_{item_name}"
