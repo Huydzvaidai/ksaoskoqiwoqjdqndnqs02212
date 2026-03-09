@@ -50,13 +50,17 @@ try:
     if os.getenv("SOUND_CONVERSION") == "true": import sound
 except Exception as e: pass
 try:
-    if os.getenv("ANIMATION_2D_CONVERSION") == "true":
+    anim_2d_enabled = os.getenv("ANIMATION_2D_CONVERSION")
+    print(f"DEBUG: ANIMATION_2D_CONVERSION = '{anim_2d_enabled}'")
+    if anim_2d_enabled == "true":
         print("Starting 2D animation conversion...")
         import sys
         sys.path.insert(0, 'animations')
         import anim_2d
         anim_2d.scan_2d_animations()
         print("2D animation conversion completed")
+    else:
+        print("2D animation conversion is disabled")
 except Exception as e:
     print(f"Error in anim_2d: {e}")
     pass
