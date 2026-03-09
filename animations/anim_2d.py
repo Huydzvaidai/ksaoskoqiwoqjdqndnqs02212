@@ -82,7 +82,7 @@ def update_attachables_with_controllers():
                 # Cập nhật textures - thêm các frame textures
                 new_textures = {}
                 for i in range(frame_count):
-                    new_textures[f"{anim_name}_{i}"] = f"{matched_texture_path}/{i}"
+                    new_textures[f"{anim_name}_{i}"] = f"textures/{matched_texture_path}/{i}"
                 
                 # Giữ lại enchanted texture
                 if "enchanted" in textures:
