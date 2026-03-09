@@ -189,13 +189,13 @@ def scan_2d_animations():
             render_controllers[controller_name] = {
                 "arrays": {
                     "textures": {
-                        f"array.{anim_name}": texture_array
+                        f"array.anim": texture_array
                     }
                 },
                 "geometry": f"geometry.{anim_name}",
                 "materials": [{"*": "variable.is_enchanted ? material.enchanted : material.default"}],
                 "textures": [
-                    f"array.{anim_name}[math.mod(math.floor(q.life_time * 20 / {frametime}),{frame_count})]",
+                    f"array.anim[math.mod(math.floor(q.life_time * 20 / {frametime}),{frame_count})]",
                     "texture.enchanted"
                 ]
             }
