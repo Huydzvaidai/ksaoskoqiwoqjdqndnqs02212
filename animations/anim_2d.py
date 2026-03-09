@@ -89,6 +89,13 @@ def update_attachables_with_controllers():
                     new_textures["enchanted"] = textures["enchanted"]
                 
                 description["textures"] = new_textures
+                
+                # Cập nhật geometry - thay "default" bằng anim_name
+                geometry = description.get("geometry", {})
+                if isinstance(geometry, dict) and "default" in geometry:
+                    old_geometry_value = geometry["default"]
+                    description["geometry"] = {anim_name: old_geometry_value}
+                
                 data["minecraft:attachable"]["description"] = description
                 
                 # Lưu lại file
@@ -167,9 +174,6 @@ def scan_2d_animations():
             frame_dir = Path("staging/target/rp/textures") / relative_texture_path
             frame_dir.mkdir(parents=True, exist_ok=True)
             
-            # Đường dẫn file sprite sheet gốc trong staging/target/rp/textures
-            original_sprite_in_staging = Path("staging/target/rp/textures") / relative_texture_path.with_suffix('.png')
-            
             frame_size = width
             print(f"Đang xử lý: {texture_file.name} ({frame_count} frames, frametime={frametime})")
             print(f"  → Lưu vào: {frame_dir}")
@@ -178,11 +182,6 @@ def scan_2d_animations():
                 frame_img = img.crop((0, i * frame_size, width, (i + 1) * frame_size))
                 frame_output_path = frame_dir / f"{i}.png"
                 frame_img.save(frame_output_path)
-            
-            # Xóa file sprite sheet gốc trong staging/target/rp/textures nếu tồn tại
-            if original_sprite_in_staging.exists():
-                original_sprite_in_staging.unlink()
-                print(f"  → Đã xóa sprite sheet gốc: {original_sprite_in_staging}")
             animation_counter += 1
             anim_name = f"anim_{animation_counter}"
             texture_array = [f"texture.{anim_name}_{i}" for i in range(frame_count)]
