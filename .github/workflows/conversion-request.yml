@@ -292,6 +292,11 @@ jobs:
             staging/bedrock.mcpack.key
             staging/bedrock/
             staging/*.json
+      - name: Delete generated-icons artifact
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: generated-icons
+        continue-on-error: true
   post-result:
     runs-on: ubuntu-latest
     needs: convert-pack
