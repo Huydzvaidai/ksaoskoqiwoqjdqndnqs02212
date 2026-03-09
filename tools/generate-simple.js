@@ -752,13 +752,10 @@ async function generateIcon(page, modelPath, outputPath) {
         // Remove isolated pixels (noise cleanup) - remove clusters smaller than 15 pixels
         imageBuffer = await removeIsolatedPixels(imageBuffer, 15);
         
-        // Convert to 8-bit PNG with alpha (60-80% smaller)
+        // Save as RGBA 32-bit PNG (no palette, no resize)
         await sharp(imageBuffer)
             .png({ 
-                compressionLevel: 9,
-                palette: true,
-                quality: 100,
-                colors: 256
+                compressionLevel: 9
             })
             .toFile(outputPath);
         
