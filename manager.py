@@ -50,7 +50,11 @@ try:
     if os.getenv("SOUND_CONVERSION") == "true": import sound
 except Exception as e: pass
 try:
-    if os.getenv("ANIMATION_2D_CONVERSION") == "true": import anim_2d
+    if os.getenv("ANIMATION_2D_CONVERSION") == "true":
+        import sys
+        sys.path.insert(0, 'animations')
+        import anim_2d
+        anim_2d.scan_2d_animations()
 except Exception as e: pass
 try:
     if os.getenv("GUI_CONVERSION") == "true":
