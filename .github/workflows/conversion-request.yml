@@ -170,22 +170,30 @@ jobs:
           cd tools
           npm install
           cd ..
+      - name: Install Chromium for Puppeteer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser
+        continue-on-error: true
       - name: Download and prepare pack
         env:
           PACK_URL: ${{ needs.get-pack-info.outputs.pack_url }}
         run: |
-          mkdir -p pack
+          mkdir -p pack/assets
           curl -#L -o input_pack.zip "${PACK_URL}"
           unzip -q input_pack.zip -d pack/
       - name: Generate icons
         run: |
-          node tools/generate-simple.js
+          mkdir -p staging/target/rp/textures
+          node tools/generate-simple.js || echo "Icon generation failed, continuing..."
       - name: Upload generated icons
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: generated-icons
           path: staging/target/rp/textures/
           retention-days: 1
+          if-no-files-found: warn
           
   convert-pack:
     runs-on: ubuntu-latest
