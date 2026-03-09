@@ -76,7 +76,7 @@ def update_attachables_with_controllers():
                 # Cập nhật textures - thêm các frame textures
                 new_textures = {}
                 for i in range(frame_count):
-                    new_textures[f"{anim_name}_{i}"] = f"{matched_texture_path}/{i + 1}"
+                    new_textures[f"{anim_name}_{i}"] = f"{matched_texture_path}/{i}"
                 
                 # Giữ lại enchanted texture
                 if "enchanted" in textures:
@@ -170,7 +170,7 @@ def scan_2d_animations():
             
             for i in range(frame_count):
                 frame_img = img.crop((0, i * frame_size, width, (i + 1) * frame_size))
-                frame_output_path = frame_dir / f"{i + 1}.png"
+                frame_output_path = frame_dir / f"{i}.png"
                 frame_img.save(frame_output_path)
             
             # Xóa file sprite sheet gốc trong staging/target/rp/textures nếu tồn tại
