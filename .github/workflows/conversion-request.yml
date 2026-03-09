@@ -170,16 +170,14 @@ jobs:
           cd tools
           npm install
           cd ..
-      - name: Install Chromium for Puppeteer
+      - name: Install Puppeteer Chromium
         run: |
-          sudo apt-get update
-          sudo apt-get install -y chromium-browser
-        continue-on-error: true
+          npx puppeteer browsers install chrome
       - name: Download and prepare pack
         env:
           PACK_URL: ${{ needs.get-pack-info.outputs.pack_url }}
         run: |
-          mkdir -p pack/assets
+          mkdir -p pack
           curl -#L -o input_pack.zip "${PACK_URL}"
           unzip -q input_pack.zip -d pack/
       - name: Generate icons
