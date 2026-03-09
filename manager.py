@@ -51,11 +51,15 @@ try:
 except Exception as e: pass
 try:
     if os.getenv("ANIMATION_2D_CONVERSION") == "true":
+        print("Starting 2D animation conversion...")
         import sys
         sys.path.insert(0, 'animations')
         import anim_2d
         anim_2d.scan_2d_animations()
-except Exception as e: pass
+        print("2D animation conversion completed")
+except Exception as e:
+    print(f"Error in anim_2d: {e}")
+    pass
 try:
     if os.getenv("GUI_CONVERSION") == "true":
         result = subprocess.run(["python", "other/gui.py"], capture_output=True, text=True)
