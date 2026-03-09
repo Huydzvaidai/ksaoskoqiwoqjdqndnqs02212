@@ -50,19 +50,25 @@ try:
     if os.getenv("SOUND_CONVERSION") == "true": import sound
 except Exception as e: pass
 try:
-    anim_2d_enabled = os.getenv("ANIMATION_2D_CONVERSION")
+    anim_2d_enabled = os.getenv("ANIMATION_2D_CONVERSION", "false")
     print(f"DEBUG: ANIMATION_2D_CONVERSION = '{anim_2d_enabled}'")
+    print(f"DEBUG: Type = {type(anim_2d_enabled)}")
+    print(f"DEBUG: Comparison result = {anim_2d_enabled == 'true'}")
+    
+    # Check for both "true" and handle "null" string from workflow
     if anim_2d_enabled == "true":
-        print("Starting 2D animation conversion...")
+        print("Bắt đầu chuyển đổi animation 2D...")
         import sys
         sys.path.insert(0, 'animations')
         import anim_2d
         anim_2d.scan_2d_animations()
-        print("2D animation conversion completed")
+        print("Hoàn thành chuyển đổi animation 2D")
     else:
-        print("2D animation conversion is disabled")
+        print(f"Chuyển đổi animation 2D bị tắt (giá trị: '{anim_2d_enabled}')")
 except Exception as e:
-    print(f"Error in anim_2d: {e}")
+    print(f"Lỗi trong anim_2d: {e}")
+    import traceback
+    traceback.print_exc()
     pass
 try:
     if os.getenv("GUI_CONVERSION") == "true":

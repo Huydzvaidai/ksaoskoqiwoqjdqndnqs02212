@@ -61,6 +61,12 @@ jobs:
           else
             echo "ITEM_MODEL=false" >> $GITHUB_OUTPUT
           fi
+          
+          if grep -A 2 "2D Animation Conversion" issue_body.txt | grep -q "true"; then
+            echo "ANIMATION_2D=true" >> $GITHUB_OUTPUT
+          else
+            echo "ANIMATION_2D=false" >> $GITHUB_OUTPUT
+          fi
       - name: Organize Inputs
         id: organize-inputs
         run: |
@@ -115,6 +121,12 @@ jobs:
           ALL_ITEMS_DIRECT="${{ steps.parse-body.outputs.ALL_ITEMS }}"
           if [ "$ALL_ITEMS_DIRECT" == "true" ]; then
             jq '.all_items_conversion = "true"' inputs.json > inputs_temp.json
+            mv inputs_temp.json inputs.json
+          fi
+          
+          ANIMATION_2D_DIRECT="${{ steps.parse-body.outputs.ANIMATION_2D }}"
+          if [ "$ANIMATION_2D_DIRECT" == "true" ]; then
+            jq '.animation_2d_conversion = "true"' inputs.json > inputs_temp.json
             mv inputs_temp.json inputs.json
           fi
           
