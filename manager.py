@@ -50,15 +50,8 @@ try:
     if os.getenv("SOUND_CONVERSION") == "true": import sound
 except Exception as e: pass
 try:
-    if os.getenv("ANIMATION_2D_CONVERSION") == "true":
-        print("=== Starting ANIMATION_2D_CONVERSION ===")
-        import sys
-        sys.path.insert(0, 'animations')
-        import anim_2d
-        print("=== Finished ANIMATION_2D_CONVERSION ===")
-except Exception as e: 
-    print(f"Error in anim_2d: {e}")
-    pass
+    if os.getenv("ANIMATION_2D_CONVERSION") == "true": import anim_2d
+except Exception as e: pass
 try:
     if os.getenv("GUI_CONVERSION") == "true":
         result = subprocess.run(["python", "other/gui.py"], capture_output=True, text=True)
