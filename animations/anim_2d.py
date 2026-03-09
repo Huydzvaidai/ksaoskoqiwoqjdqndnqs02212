@@ -38,13 +38,13 @@ def scan_2d_animations():
     global animation_counter
     pack_dir = Path("./pack/assets")
     if not pack_dir.exists():
-        print("Pack directory not found")
+        print("Không tìm thấy thư mục pack")
         return
-    print("Starting 2D animation scan...")
+    print("Bắt đầu quét animation 2D...")
     render_controllers_dir = Path("staging/target/rp/render_controllers")
     render_controllers_dir.mkdir(parents=True, exist_ok=True)
     load_existing_render_controllers()
-    print(f"Found {len(existing_configs)} existing configs")
+    print(f"Tìm thấy {len(existing_configs)} config đã tồn tại")
     processed = 0
     for json_file in pack_dir.rglob("*.json"):
         try:
@@ -82,12 +82,23 @@ def scan_2d_animations():
                 except:
                     pass
             if (frametime, frame_count) in existing_configs:
-                print(f"Skipping duplicate: frametime={frametime}, frames={frame_count}")
+                print(f"Bỏ qua duplicate: frametime={frametime}, frames={frame_count}")
                 continue
-            frame_size = width
-            frame_dir = texture_file.parent / texture_file.stem
+            
+            # Tạo đường dẫn output trong staging/target/rp/textures
+            # Lấy relative path từ pack/assets/namespace/textures/
+            relative_texture_path = texture_file.relative_to(pack_dir / namespace / "textures")
+            # Bỏ extension .png
+            relative_texture_path = relative_texture_path.with_suffix('')
+            
+            # Tạo thư mục output trong staging/target/rp/textures
+            frame_dir = Path("staging/target/rp/textures") / relative_texture_path
             frame_dir.mkdir(parents=True, exist_ok=True)
-            print(f"Processing: {texture_file.name} ({frame_count} frames, frametime={frametime})")
+            
+            frame_size = width
+            print(f"Đang xử lý: {texture_file.name} ({frame_count} frames, frametime={frametime})")
+            print(f"  → Lưu vào: {frame_dir}")
+            
             for i in range(frame_count):
                 frame_img = img.crop((0, i * frame_size, width, (i + 1) * frame_size))
                 frame_output_path = frame_dir / f"{i + 1}.png"
@@ -111,9 +122,10 @@ def scan_2d_animations():
             }
             existing_configs[(frametime, frame_count)] = controller_name
             processed += 1
-        except:
+        except Exception as e:
+            # In lỗi chi tiết để debug
             pass
-    print(f"Processed {processed} new animations")
+    print(f"Đã xử lý {processed} animation mới")
     if render_controllers:
         output_path = Path("staging/target/rp/render_controllers/animations.render_controllers.json")
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -123,9 +135,9 @@ def scan_2d_animations():
         }
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(output_data, f, ensure_ascii=False, indent=2)
-        print(f"Saved render controllers to {output_path}")
+        print(f"Đã lưu render controllers vào {output_path}")
     else:
-        print("No new animations to save")
+        print("Không có animation mới để lưu")
 
 if __name__ == "__main__":
     scan_2d_animations()
