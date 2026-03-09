@@ -62,9 +62,15 @@ def update_attachables_with_controllers():
             matched_info = None
             matched_texture_path = None
             for texture_path, animation_info in texture_to_animation_info.items():
-                if texture_path in default_texture:
+                # So sánh cả 2 chiều: texture_path in default_texture HOẶC default_texture endswith texture_path
+                # Để xử lý cả trường hợp có prefix khác nhau
+                texture_basename = texture_path.split('/')[-1]  # Lấy tên file cuối cùng
+                default_basename = default_texture.split('/')[-1]
+                
+                if texture_basename == default_basename or texture_path in default_texture or default_texture.endswith(texture_path):
                     matched_info = animation_info
                     matched_texture_path = texture_path
+                    print(f"    → Tìm thấy match: {default_texture} <-> {texture_path}")
                     break
             
             if matched_info:
