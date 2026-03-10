@@ -178,16 +178,158 @@ def randomize_item_textures():
                             old_texture_path = "textures/" + old_rel_path.replace(os.sep, '/')
                             new_texture_path = "textures/" + rel_path.replace(os.sep, '/')[:-4]  # Bỏ .png
                             path_mapping[old_texture_path] = new_texture_path
+                            print(f"[DEBUG] randomize_item_textures mapping: {old_texture_path} -> {new_texture_path}")
                             break
     
     # Thêm mapping vào global mapping
     global_path_mapping.update(path_mapping)
+    print(f"[DEBUG] randomize_item_textures: Thêm {len(path_mapping)} mappings vào global")
+
+def randomize_2d_animation_textures():
+    """Random tên và xáo trộn texture của 2D animations (xử lý thư mục item)"""
+    global global_path_mapping
+    
+    import random
+    import shutil
+    from pathlib import Path
+    
+    textures_root = Path("staging/target/rp/textures")
+    item_dir = textures_root / "item"
+    
+    if not item_dir.exists():
+        print("[DEBUG] randomize_2d_animation_textures: Thư mục item không tồn tại")
+        return
+    
+    print("[DEBUG] randomize_2d_animation_textures: Bắt đầu xử lý thư mục item")
+    
+    # Bước 1: Thu thập tất cả file PNG và thư mục con trong item/
+    files_to_rename = []  # [(abs_path, relative_path_without_ext)]
+    folders_to_rename = []  # [(abs_path, relative_path)]
+    
+    for root, dirs, files in os.walk(item_dir):
+        rel_root = os.path.relpath(root, item_dir)
+        
+        # Thu thập file PNG
+        for file in files:
+            if file.endswith('.png'):
+                abs_path = os.path.join(root, file)
+                rel_path = os.path.relpath(abs_path, item_dir)
+                rel_path_no_ext = rel_path[:-4]  # Bỏ .png
+                files_to_rename.append((abs_path, rel_path_no_ext))
+        
+        # Thu thập thư mục con (không bao gồm thư mục item root)
+        for dir_name in dirs:
+            abs_path = os.path.join(root, dir_name)
+            rel_path = os.path.relpath(abs_path, item_dir)
+            folders_to_rename.append((abs_path, rel_path))
+    
+    print(f"[DEBUG] randomize_2d_animation_textures: Tìm thấy {len(files_to_rename)} files và {len(folders_to_rename)} folders")
+    
+    # Bước 2: Tạo mapping cho file
+    file_mapping = {}  # relative_path_no_ext -> new_name
+    for abs_path, rel_path_no_ext in files_to_rename:
+        new_name = random_short_name()
+        file_mapping[rel_path_no_ext] = new_name
+    
+    # Bước 3: Tạo mapping cho thư mục con (từ sâu nhất lên)
+    folder_mapping = {}  # relative_path -> new_name
+    folders_to_rename.sort(key=lambda x: x[1].count(os.sep), reverse=True)
+    
+    for abs_path, rel_path in folders_to_rename:
+        new_name = random_short_name()
+        folder_mapping[rel_path] = new_name
+    
+    # Bước 4: Rename files
+    for abs_path, rel_path_no_ext in files_to_rename:
+        if os.path.exists(abs_path):
+            new_name = file_mapping[rel_path_no_ext]
+            new_path = os.path.join(os.path.dirname(abs_path), new_name + '.png')
+            shutil.move(abs_path, new_path)
+    
+    # Bước 5: Xáo trộn 100% file PNG trong phạm vi item/
+    all_png_files = []
+    for root, dirs, files in os.walk(item_dir):
+        for file in files:
+            if file.endswith('.png'):
+                all_png_files.append(os.path.join(root, file))
+    
+    # Tạo danh sách thư mục đích (tất cả thư mục trong item/)
+    target_dirs = []
+    for root, dirs, files in os.walk(item_dir):
+        target_dirs.append(root)
+    
+    # Nếu chỉ có thư mục root, tạo thêm một số thư mục con random
+    if len(target_dirs) <= 1:
+        for i in range(5):
+            new_dir = item_dir / random_short_name()
+            new_dir.mkdir(parents=True, exist_ok=True)
+            target_dirs.append(str(new_dir))
+    
+    # Xáo trộn file trong phạm vi item/
+    for png_file in all_png_files:
+        if os.path.exists(png_file):
+            target_dir = random.choice(target_dirs)
+            new_path = os.path.join(target_dir, os.path.basename(png_file))
+            
+            # Nếu trùng tên, thêm suffix
+            if os.path.exists(new_path):
+                base_name = os.path.splitext(os.path.basename(png_file))[0]
+                counter = 1
+                while os.path.exists(new_path):
+                    new_name = f"{base_name}_{counter}.png"
+                    new_path = os.path.join(target_dir, new_name)
+                    counter += 1
+            
+            shutil.move(png_file, new_path)
+    
+    # Bước 6: Rename folders (từ sâu nhất lên)
+    for abs_path, rel_path in folders_to_rename:
+        if os.path.exists(abs_path):
+            new_name = folder_mapping[rel_path]
+            new_path = os.path.join(os.path.dirname(abs_path), new_name)
+            shutil.move(abs_path, new_path)
+    
+    # Bước 7: Random tên thư mục item
+    new_item_name = random_short_name()
+    new_item_path = textures_root / new_item_name
+    shutil.move(str(item_dir), str(new_item_path))
+    
+    # Bước 8: Tạo path mapping SAU KHI xáo trộn và rename
+    path_mapping = {}
+    
+    # Thu thập lại tất cả file PNG sau khi xáo trộn
+    for root, dirs, files in os.walk(new_item_path):
+        for file in files:
+            if file.endswith('.png'):
+                abs_path = os.path.join(root, file)
+                rel_path = os.path.relpath(abs_path, textures_root)
+                
+                # Tìm tên gốc từ file_mapping
+                for old_rel_path, new_name in file_mapping.items():
+                    file_base = os.path.splitext(file)[0]
+                    if file_base == new_name or file_base.startswith(new_name + "_"):
+                        old_texture_path = "textures/item/" + old_rel_path.replace(os.sep, '/')
+                        new_texture_path = "textures/" + rel_path.replace(os.sep, '/')[:-4]  # Bỏ .png
+                        path_mapping[old_texture_path] = new_texture_path
+                        print(f"[DEBUG] randomize_2d_animation_textures mapping: {old_texture_path} -> {new_texture_path}")
+                        break
+    
+    # Thêm mapping vào global mapping
+    global_path_mapping.update(path_mapping)
+    print(f"[DEBUG] randomize_2d_animation_textures: Thêm {len(path_mapping)} mappings vào global")
 
 def update_all_mappings():
     """Cập nhật tất cả file với global path mapping"""
     global global_path_mapping
     
+    print(f"[DEBUG] Global mapping có {len(global_path_mapping)} entries")
+    if global_path_mapping:
+        print("[DEBUG] Sample mappings:")
+        for i, (old, new) in enumerate(list(global_path_mapping.items())[:5]):
+            print(f"  {old} -> {new}")
+    
     if not global_path_mapping:
+        print("[DEBUG] Không có mapping nào để cập nhật")
         return
     
     # Cập nhật item_texture.json và terrain_texture.json
@@ -195,36 +337,58 @@ def update_all_mappings():
     terrain_texture_path = "staging/target/rp/textures/terrain_texture.json"
     
     if os.path.exists(item_texture_path):
+        print(f"[DEBUG] Đang cập nhật {item_texture_path}")
         with open(item_texture_path, 'r', encoding='utf-8') as f:
             item_texture_data = json.load(f)
         
         item_data = item_texture_data.get("texture_data", {})
         updated_textures = 0
+        total_textures = len(item_data)
+        
         for key, value in item_data.items():
             old_texture_path = value.get("textures", "")
             if old_texture_path in global_path_mapping:
-                item_data[key]["textures"] = global_path_mapping[old_texture_path]
+                new_path = global_path_mapping[old_texture_path]
+                item_data[key]["textures"] = new_path
                 updated_textures += 1
+                print(f"[DEBUG] Updated {key}: {old_texture_path} -> {new_path}")
+            else:
+                print(f"[DEBUG] No mapping found for {key}: {old_texture_path}")
+        
+        print(f"[DEBUG] Cập nhật {updated_textures}/{total_textures} textures trong item_texture.json")
         
         item_texture_data['texture_data'] = item_data
         with open(item_texture_path, 'w', encoding='utf-8') as f:
             json.dump(item_texture_data, f, ensure_ascii=False, indent=0)
+    else:
+        print(f"[DEBUG] File {item_texture_path} không tồn tại")
     
     if os.path.exists(terrain_texture_path):
+        print(f"[DEBUG] Đang cập nhật {terrain_texture_path}")
         with open(terrain_texture_path, 'r', encoding='utf-8') as f:
             terrain_texture_data = json.load(f)
         
         terrain_data = terrain_texture_data.get("texture_data", {})
         updated_textures = 0
+        total_textures = len(terrain_data)
+        
         for key, value in terrain_data.items():
             old_texture_path = value.get("textures", "")
             if old_texture_path in global_path_mapping:
-                terrain_data[key]["textures"] = global_path_mapping[old_texture_path]
+                new_path = global_path_mapping[old_texture_path]
+                terrain_data[key]["textures"] = new_path
                 updated_textures += 1
+                print(f"[DEBUG] Updated {key}: {old_texture_path} -> {new_path}")
+            else:
+                print(f"[DEBUG] No mapping found for {key}: {old_texture_path}")
+        
+        print(f"[DEBUG] Cập nhật {updated_textures}/{total_textures} textures trong terrain_texture.json")
         
         terrain_texture_data['texture_data'] = terrain_data
         with open(terrain_texture_path, 'w', encoding='utf-8') as f:
             json.dump(terrain_texture_data, f, ensure_ascii=False, indent=0)
+    else:
+        print(f"[DEBUG] File {terrain_texture_path} không tồn tại")
     
     # Cập nhật attachables
     attachables_dir = "staging/target/rp/attachables"
@@ -232,6 +396,7 @@ def update_all_mappings():
     
     if os.path.exists(attachables_dir):
         json_files = list(glob.glob(f"{attachables_dir}/**/*.json", recursive=True))
+        print(f"[DEBUG] Đang cập nhật {len(json_files)} attachable files")
         
         for json_file in json_files:
             try:
@@ -255,8 +420,10 @@ def update_all_mappings():
                     updated_count += 1
             except:
                 pass
-    """Tạo tên random 15 ký tự chữ cái in thường và số cho thư mục"""
-    return 'campfire_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=15))
+        
+        print(f"[DEBUG] Cập nhật {updated_count} attachable files")
+    else:
+        print(f"[DEBUG] Thư mục {attachables_dir} không tồn tại")
 
 def random_folder_name():
     """Tạo tên random 15 ký tự chữ cái in thường và số cho thư mục"""
@@ -421,132 +588,6 @@ def check_randomized():
     
     print("[DEBUG] Tất cả file và thư mục đã được random")
     return True
-
-def randomize_2d_animation_textures():
-    """Random tên và xáo trộn texture của 2D animations (xử lý thư mục item)"""
-    global global_path_mapping
-    
-    import random
-    import shutil
-    from pathlib import Path
-    
-    textures_root = Path("staging/target/rp/textures")
-    item_dir = textures_root / "item"
-    
-    if not item_dir.exists():
-        return
-    
-    # Bước 1: Thu thập tất cả file PNG và thư mục con trong item/
-    files_to_rename = []  # [(abs_path, relative_path_without_ext)]
-    folders_to_rename = []  # [(abs_path, relative_path)]
-    
-    for root, dirs, files in os.walk(item_dir):
-        rel_root = os.path.relpath(root, item_dir)
-        
-        # Thu thập file PNG
-        for file in files:
-            if file.endswith('.png'):
-                abs_path = os.path.join(root, file)
-                rel_path = os.path.relpath(abs_path, item_dir)
-                rel_path_no_ext = rel_path[:-4]  # Bỏ .png
-                files_to_rename.append((abs_path, rel_path_no_ext))
-        
-        # Thu thập thư mục con (không bao gồm thư mục item root)
-        for dir_name in dirs:
-            abs_path = os.path.join(root, dir_name)
-            rel_path = os.path.relpath(abs_path, item_dir)
-            folders_to_rename.append((abs_path, rel_path))
-    
-    # Bước 2: Tạo mapping cho file
-    file_mapping = {}  # relative_path_no_ext -> new_name
-    for abs_path, rel_path_no_ext in files_to_rename:
-        new_name = random_short_name()
-        file_mapping[rel_path_no_ext] = new_name
-    
-    # Bước 3: Tạo mapping cho thư mục con (từ sâu nhất lên)
-    folder_mapping = {}  # relative_path -> new_name
-    folders_to_rename.sort(key=lambda x: x[1].count(os.sep), reverse=True)
-    
-    for abs_path, rel_path in folders_to_rename:
-        new_name = random_short_name()
-        folder_mapping[rel_path] = new_name
-    
-    # Bước 4: Rename files
-    for abs_path, rel_path_no_ext in files_to_rename:
-        if os.path.exists(abs_path):
-            new_name = file_mapping[rel_path_no_ext]
-            new_path = os.path.join(os.path.dirname(abs_path), new_name + '.png')
-            shutil.move(abs_path, new_path)
-    
-    # Bước 5: Xáo trộn 100% file PNG trong phạm vi item/
-    all_png_files = []
-    for root, dirs, files in os.walk(item_dir):
-        for file in files:
-            if file.endswith('.png'):
-                all_png_files.append(os.path.join(root, file))
-    
-    # Tạo danh sách thư mục đích (tất cả thư mục trong item/)
-    target_dirs = []
-    for root, dirs, files in os.walk(item_dir):
-        target_dirs.append(root)
-    
-    # Nếu chỉ có thư mục root, tạo thêm một số thư mục con random
-    if len(target_dirs) <= 1:
-        for i in range(5):
-            new_dir = item_dir / random_short_name()
-            new_dir.mkdir(parents=True, exist_ok=True)
-            target_dirs.append(str(new_dir))
-    
-    # Xáo trộn file trong phạm vi item/
-    for png_file in all_png_files:
-        if os.path.exists(png_file):
-            target_dir = random.choice(target_dirs)
-            new_path = os.path.join(target_dir, os.path.basename(png_file))
-            
-            # Nếu trùng tên, thêm suffix
-            if os.path.exists(new_path):
-                base_name = os.path.splitext(os.path.basename(png_file))[0]
-                counter = 1
-                while os.path.exists(new_path):
-                    new_name = f"{base_name}_{counter}.png"
-                    new_path = os.path.join(target_dir, new_name)
-                    counter += 1
-            
-            shutil.move(png_file, new_path)
-    
-    # Bước 6: Rename folders (từ sâu nhất lên)
-    for abs_path, rel_path in folders_to_rename:
-        if os.path.exists(abs_path):
-            new_name = folder_mapping[rel_path]
-            new_path = os.path.join(os.path.dirname(abs_path), new_name)
-            shutil.move(abs_path, new_path)
-    
-    # Bước 7: Random tên thư mục item
-    new_item_name = random_short_name()
-    new_item_path = textures_root / new_item_name
-    shutil.move(str(item_dir), str(new_item_path))
-    
-    # Bước 8: Tạo path mapping SAU KHI xáo trộn và rename
-    path_mapping = {}
-    
-    # Thu thập lại tất cả file PNG sau khi xáo trộn
-    for root, dirs, files in os.walk(new_item_path):
-        for file in files:
-            if file.endswith('.png'):
-                abs_path = os.path.join(root, file)
-                rel_path = os.path.relpath(abs_path, textures_root)
-                
-                # Tìm tên gốc từ file_mapping
-                for old_rel_path, new_name in file_mapping.items():
-                    file_base = os.path.splitext(file)[0]
-                    if file_base == new_name or file_base.startswith(new_name + "_"):
-                        old_texture_path = "textures/item/" + old_rel_path.replace(os.sep, '/')
-                        new_texture_path = "textures/" + rel_path.replace(os.sep, '/')[:-4]  # Bỏ .png
-                        path_mapping[old_texture_path] = new_texture_path
-                        break
-    
-    # Thêm mapping vào global mapping
-    global_path_mapping.update(path_mapping)
 
 if __name__ == "__main__":
     # Reset global mapping
