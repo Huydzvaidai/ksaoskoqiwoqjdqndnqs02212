@@ -27,7 +27,7 @@ def randomize_item_textures():
     if not os.path.exists(item_texture_path) and not os.path.exists(terrain_texture_path):
         return
     
-    # Danh sách thư mục bỏ qua
+    # Danh sách thư mục bỏ qua (chỉ bỏ qua khi rename, KHÔNG bỏ qua khi tracking)
     skip_folders = ['gui', 'campfire_item']
     
     # Bước 1: Thu thập tất cả texture paths từ JSON files
@@ -62,8 +62,10 @@ def randomize_item_textures():
         if os.path.exists(abs_file_path):
             file_tracking[texture_path] = abs_file_path
             print(f"[TRACK] {texture_path} -> {abs_file_path}")
+        else:
+            print(f"[NO_FILE_FOUND] {texture_path} -> {abs_file_path} (không tồn tại)")
     
-    print(f"Tracking {len(file_tracking)} files")
+    print(f"Tracking {len(file_tracking)} files, {len(all_texture_paths) - len(file_tracking)} files không tồn tại")
     
     # Bước 3: Thu thập tất cả file và thư mục cần rename (chỉ những file được track)
     files_to_rename = []  # [(abs_path, old_texture_path)]
@@ -74,19 +76,20 @@ def randomize_item_textures():
         if os.path.exists(abs_file_path):
             files_to_rename.append((abs_file_path, old_texture_path))
     
-    # Thu thập thư mục
+    # Thu thập thư mục (KHÔNG skip bất kỳ thư mục nào để đảm bảo không mất file)
     for root, dirs, files in os.walk(textures_root):
         rel_root = os.path.relpath(root, textures_root)
-        should_skip = any(rel_root == skip or rel_root.startswith(skip + os.sep) for skip in skip_folders)
         
-        if not should_skip:
-            for dir_name in dirs:
-                if dir_name in skip_folders:
-                    continue
-                
-                abs_path = os.path.join(root, dir_name)
-                rel_path = os.path.relpath(abs_path, textures_root)
-                folders_to_rename.append((abs_path, rel_path))
+        for dir_name in dirs:
+            # Skip thư mục gui và campfire_item
+            if dir_name in skip_folders:
+                continue
+            
+            abs_path = os.path.join(root, dir_name)
+            rel_path = os.path.relpath(abs_path, textures_root)
+            
+            # Không skip thư mục nào khác
+            folders_to_rename.append((abs_path, rel_path))
     
     # Bước 4: Tạo mapping cho file và thư mục
     file_new_names = {}  # abs_path -> new_name
@@ -114,11 +117,15 @@ def randomize_item_textures():
     # Bước 6: Xáo trộn files và update tracking
     all_tracked_files = list(file_tracking.values())
     
-    # Tạo danh sách thư mục đích
+    # Tạo danh sách thư mục đích (TẤT CẢ thư mục, không skip)
     target_dirs = set()
-    for file_path in all_tracked_files:
-        target_dirs.add(os.path.dirname(file_path))
+    for root, dirs, files in os.walk(textures_root):
+        # Skip thư mục gui và campfire_item
+        if os.path.basename(root) not in skip_folders:
+            target_dirs.add(root)
     target_dirs = list(target_dirs)
+    
+    print(f"Có {len(target_dirs)} thư mục đích cho xáo trộn")
     
     # Xáo trộn từng file và update tracking
     for old_texture_path, current_abs_path in list(file_tracking.items()):
