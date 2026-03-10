@@ -276,7 +276,7 @@ def check_randomized():
         "staging/target/rp/animation_controllers"
     ]
     
-    skip_folders = ['gui', 'campfire_item']
+    skip_folders = ['gui', 'campfire_item', 'item']
     
     for directory in dirs:
         if os.path.exists(directory):

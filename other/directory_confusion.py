@@ -100,6 +100,53 @@ def split_animation_controllers():
         except Exception as e:
             continue
 
+def split_render_controllers():
+    """Tách file render_controllers có nhiều controller thành nhiều file riêng"""
+    controllers_dir = "staging/target/rp/render_controllers"
+    
+    if not os.path.exists(controllers_dir):
+        return
+    
+    json_files = list(glob.glob(f"{controllers_dir}/**/*.json", recursive=True))
+    
+    for json_file in json_files:
+        try:
+            with open(json_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            controllers = data.get("render_controllers", {})
+            
+            # Nếu chỉ có 1 controller hoặc không có, bỏ qua
+            if len(controllers) <= 1:
+                continue
+            
+            format_version = data.get("format_version", "1.10")
+            file_dir = os.path.dirname(json_file)
+            base_filename = os.path.splitext(os.path.basename(json_file))[0]
+            
+            # Tách từng controller thành file riêng
+            counter = 1
+            for controller_name, controller_data in controllers.items():
+                new_data = {
+                    "format_version": format_version,
+                    "render_controllers": {
+                        controller_name: controller_data
+                    }
+                }
+                
+                # Tạo tên file từ tên file gốc + số thứ tự
+                new_file = os.path.join(file_dir, f"{base_filename}_{counter}.json")
+                counter += 1
+                
+                with open(new_file, 'w', encoding='utf-8') as f:
+                    json.dump(new_data, f, ensure_ascii=False, indent=0)
+            
+            # Xóa file gốc sau khi tách xong
+            os.remove(json_file)
+            
+        except Exception as e:
+            continue
+
 def confuse_directory():
     """Xáo trộn file vào thư mục con ngẫu nhiên"""
     directories = [
@@ -143,4 +190,5 @@ def confuse_directory():
 if __name__ == "__main__":
     split_animations()
     split_animation_controllers()
+    split_render_controllers()
     confuse_directory()
