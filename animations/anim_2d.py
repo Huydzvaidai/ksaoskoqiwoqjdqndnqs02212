@@ -299,7 +299,7 @@ def random_short_name():
     return 'campfire_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=15))
 
 def randomize_2d_animation_textures():
-    """Random tên và xáo trộn texture của 2D animations (chỉ xử lý thư mục item)"""
+    """Random tên và xáo trộn texture của 2D animations (chỉ trong phạm vi item/)"""
     import random
     import shutil
     
@@ -309,25 +309,25 @@ def randomize_2d_animation_textures():
     if not item_dir.exists():
         return
     
-    # Bước 1: Thu thập tất cả file PNG và thư mục trong item/
+    # Bước 1: Thu thập tất cả file PNG và thư mục con trong item/
     files_to_rename = []  # [(abs_path, relative_path_without_ext)]
     folders_to_rename = []  # [(abs_path, relative_path)]
     
     for root, dirs, files in os.walk(item_dir):
-        rel_root = os.path.relpath(root, textures_root)
+        rel_root = os.path.relpath(root, item_dir)
         
         # Thu thập file PNG
         for file in files:
             if file.endswith('.png'):
                 abs_path = os.path.join(root, file)
-                rel_path = os.path.relpath(abs_path, textures_root)
+                rel_path = os.path.relpath(abs_path, item_dir)
                 rel_path_no_ext = rel_path[:-4]  # Bỏ .png
                 files_to_rename.append((abs_path, rel_path_no_ext))
         
-        # Thu thập thư mục
+        # Thu thập thư mục con (không bao gồm thư mục item root)
         for dir_name in dirs:
             abs_path = os.path.join(root, dir_name)
-            rel_path = os.path.relpath(abs_path, textures_root)
+            rel_path = os.path.relpath(abs_path, item_dir)
             folders_to_rename.append((abs_path, rel_path))
     
     # Bước 2: Tạo mapping cho file
@@ -336,7 +336,7 @@ def randomize_2d_animation_textures():
         new_name = random_short_name()
         file_mapping[rel_path_no_ext] = new_name
     
-    # Bước 3: Tạo mapping cho thư mục (từ sâu nhất lên)
+    # Bước 3: Tạo mapping cho thư mục con (từ sâu nhất lên)
     folder_mapping = {}  # relative_path -> new_name
     folders_to_rename.sort(key=lambda x: x[1].count(os.sep), reverse=True)
     
@@ -351,29 +351,26 @@ def randomize_2d_animation_textures():
             new_path = os.path.join(os.path.dirname(abs_path), new_name + '.png')
             shutil.move(abs_path, new_path)
     
-    # Bước 5: Xáo trộn 100% file PNG vào các thư mục trong textures/
+    # Bước 5: Xáo trộn 100% file PNG trong phạm vi item/
     all_png_files = []
     for root, dirs, files in os.walk(item_dir):
         for file in files:
             if file.endswith('.png'):
                 all_png_files.append(os.path.join(root, file))
     
-    # Tạo danh sách thư mục đích (tất cả thư mục trong textures/)
+    # Tạo danh sách thư mục đích (tất cả thư mục trong item/)
     target_dirs = []
-    for root, dirs, files in os.walk(textures_root):
-        # Bỏ qua gui, campfire_item
-        rel_root = os.path.relpath(root, textures_root)
-        if rel_root not in ['gui', 'campfire_item', '.']:
-            target_dirs.append(root)
+    for root, dirs, files in os.walk(item_dir):
+        target_dirs.append(root)
     
-    # Nếu không có thư mục đích, tạo một số thư mục random
-    if not target_dirs:
+    # Nếu chỉ có thư mục root, tạo thêm một số thư mục con random
+    if len(target_dirs) <= 1:
         for i in range(5):
-            new_dir = textures_root / random_short_name()
+            new_dir = item_dir / random_short_name()
             new_dir.mkdir(parents=True, exist_ok=True)
             target_dirs.append(str(new_dir))
     
-    # Xáo trộn file
+    # Xáo trộn file trong phạm vi item/
     for png_file in all_png_files:
         if os.path.exists(png_file):
             target_dir = random.choice(target_dirs)
@@ -397,17 +394,16 @@ def randomize_2d_animation_textures():
             new_path = os.path.join(os.path.dirname(abs_path), new_name)
             shutil.move(abs_path, new_path)
     
-    # Bước 7: Tạo path mapping SAU KHI xáo trộn
+    # Bước 7: Random tên thư mục item
+    new_item_name = random_short_name()
+    new_item_path = textures_root / new_item_name
+    shutil.move(str(item_dir), str(new_item_path))
+    
+    # Bước 8: Tạo path mapping SAU KHI xáo trộn và rename
     path_mapping = {}
     
     # Thu thập lại tất cả file PNG sau khi xáo trộn
-    for root, dirs, files in os.walk(textures_root):
-        rel_root = os.path.relpath(root, textures_root)
-        
-        # Bỏ qua gui, campfire_item
-        if rel_root in ['gui', 'campfire_item']:
-            continue
-        
+    for root, dirs, files in os.walk(new_item_path):
         for file in files:
             if file.endswith('.png'):
                 abs_path = os.path.join(root, file)
@@ -417,12 +413,12 @@ def randomize_2d_animation_textures():
                 for old_rel_path, new_name in file_mapping.items():
                     file_base = os.path.splitext(file)[0]
                     if file_base == new_name or file_base.startswith(new_name + "_"):
-                        old_texture_path = "textures/" + old_rel_path.replace(os.sep, '/')
+                        old_texture_path = "textures/item/" + old_rel_path.replace(os.sep, '/')
                         new_texture_path = "textures/" + rel_path.replace(os.sep, '/')[:-4]  # Bỏ .png
                         path_mapping[old_texture_path] = new_texture_path
                         break
     
-    # Bước 8: Cập nhật attachables
+    # Bước 9: Cập nhật attachables
     attachables_dir = Path("staging/target/rp/attachables")
     
     if attachables_dir.exists():
