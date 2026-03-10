@@ -283,6 +283,8 @@ def randomize_item_textures():
     updated_count = 0
     missing_files_attachables = []
     unmapped_paths = []
+    total_texture_paths = 0
+    updated_texture_paths = 0
     
     if os.path.exists(attachables_dir):
         json_files = list(glob.glob(f"{attachables_dir}/**/*.json", recursive=True))
@@ -297,21 +299,30 @@ def randomize_item_textures():
                 updated = False
                 
                 for tex_key, tex_value in textures.items():
-                    if tex_value:
+                    if tex_value and tex_value.startswith("textures/"):
+                        total_texture_paths += 1
                         # Sử dụng path_mapping để thay thế đường dẫn cũ thành mới
                         original_tex_value = tex_value
                         found_mapping = False
                         
-                        for old_path, new_path in path_mapping.items():
-                            if old_path in tex_value:
-                                tex_value = tex_value.replace(old_path, new_path)
-                                found_mapping = True
-                        
-                        # Nếu có thay đổi, cập nhật
-                        if tex_value != original_tex_value:
-                            textures[tex_key] = tex_value
+                        # Tìm exact match trước
+                        if tex_value in path_mapping:
+                            textures[tex_key] = path_mapping[tex_value]
                             updated = True
-                        elif not found_mapping and original_tex_value.startswith("textures/"):
+                            found_mapping = True
+                            updated_texture_paths += 1
+                        else:
+                            # Tìm partial match
+                            for old_path, new_path in path_mapping.items():
+                                if old_path in tex_value:
+                                    tex_value = tex_value.replace(old_path, new_path)
+                                    textures[tex_key] = tex_value
+                                    updated = True
+                                    found_mapping = True
+                                    updated_texture_paths += 1
+                                    break
+                        
+                        if not found_mapping:
                             # Kiểm tra xem file có tồn tại không
                             file_path = os.path.join(textures_root, original_tex_value.replace("textures/", "").replace("/", os.sep) + ".png")
                             if not os.path.exists(file_path):
@@ -329,6 +340,19 @@ def randomize_item_textures():
             except Exception as e:
                 # Bỏ qua lỗi và tiếp tục xử lý file khác
                 pass
+    
+    # Debug attachables
+    print(f"[DEBUG] Tổng texture paths trong attachables: {total_texture_paths}")
+    print(f"[DEBUG] Texture paths đã cập nhật: {updated_texture_paths}")
+    print(f"[DEBUG] Attachable files đã cập nhật: {updated_count}")
+    print(f"[DEBUG] Paths thiếu file: {len(missing_files_attachables)}")
+    print(f"[DEBUG] Paths không có mapping: {len(unmapped_paths)}")
+    
+    # In một vài unmapped paths để debug
+    if unmapped_paths:
+        print("[DEBUG] Một vài unmapped paths:")
+        for i, path in enumerate(unmapped_paths[:5]):
+            print(f"[DEBUG] {path}")
     
     return path_mapping  # Return mapping để có thể sử dụng nếu cần
 
