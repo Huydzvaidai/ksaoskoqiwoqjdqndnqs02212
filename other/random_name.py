@@ -167,57 +167,83 @@ def randomize_item_textures():
     # Bước 6: Tạo path mapping SAU KHI xáo trộn (để có đường dẫn chính xác)
     path_mapping = {}
     
-    # Thu thập tất cả file PNG hiện tại sau khi xáo trộn và rename
-    current_files = {}  # old_rel_path_no_ext -> current_abs_path
-    reverse_file_mapping = {}  # new_name -> old_rel_path_no_ext (để tra ngược)
+    # Thu thập TẤT CẢ đường dẫn cũ từ JSON files
+    old_paths_from_json = set()
     
-    # Tạo reverse mapping
-    for old_rel_path, new_name in file_mapping.items():
-        reverse_file_mapping[new_name] = old_rel_path
+    # Lấy paths từ item_texture.json
+    if os.path.exists(item_texture_path):
+        item_data = texture_data_combined.get('item', {})
+        for key, value in item_data.items():
+            old_texture_path = value.get("textures", "")
+            if old_texture_path:
+                old_paths_from_json.add(old_texture_path)
     
-    for root, dirs, files in os.walk(textures_root):
-        rel_root = os.path.relpath(root, textures_root)
-        should_skip = any(rel_root == skip or rel_root.startswith(skip + os.sep) for skip in skip_folders)
-        
-        if not should_skip:
-            for file in files:
-                if file.endswith('.png') and file not in ['item_texture.json', 'terrain_texture.json']:
-                    abs_path = os.path.join(root, file)
-                    file_base = os.path.splitext(file)[0]
-                    
-                    # Tìm tên gốc từ file_mapping
-                    found_original = False
-                    for new_name, old_rel_path in reverse_file_mapping.items():
-                        # Kiểm tra nếu file hiện tại khớp với new_name (có thể có suffix _1, _2)
-                        if file_base == new_name or file_base.startswith(new_name + "_"):
-                            current_files[old_rel_path] = abs_path
-                            found_original = True
-                            break
-                    
-                    # Nếu không tìm thấy trong reverse_file_mapping, có thể là file đã bị xáo trộn
-                    # và đổi tên với suffix, cần tìm bằng cách khác
-                    if not found_original:
-                        # Thử tìm bằng cách loại bỏ suffix _số
-                        base_without_suffix = file_base
-                        if '_' in file_base:
-                            parts = file_base.split('_')
-                            if parts[-1].isdigit():  # Nếu phần cuối là số
-                                base_without_suffix = '_'.join(parts[:-1])
-                        
-                        if base_without_suffix in reverse_file_mapping:
-                            old_rel_path = reverse_file_mapping[base_without_suffix]
-                            current_files[old_rel_path] = abs_path
+    # Lấy paths từ terrain_texture.json  
+    if os.path.exists(terrain_texture_path):
+        terrain_data = texture_data_combined.get('terrain', {})
+        for key, value in terrain_data.items():
+            old_texture_path = value.get("textures", "")
+            if old_texture_path:
+                old_paths_from_json.add(old_texture_path)
     
-    # Tạo path mapping từ đường dẫn cũ sang đường dẫn mới
-    for old_rel_path, current_abs_path in current_files.items():
-        # Đường dẫn cũ (trước khi xáo trộn)
-        old_texture_path = "textures/" + old_rel_path.replace(os.sep, '/')
+    # Lấy paths từ attachables
+    attachables_dir = "staging/target/rp/attachables"
+    if os.path.exists(attachables_dir):
+        json_files = list(glob.glob(f"{attachables_dir}/**/*.json", recursive=True))
+        for json_file in json_files:
+            try:
+                with open(json_file, 'r', encoding='utf-8') as jf:
+                    attachable_data = json.load(jf)
+                desc = attachable_data.get("minecraft:attachable", {}).get("description", {})
+                textures = desc.get("textures", {})
+                for tex_key, tex_value in textures.items():
+                    if tex_value and tex_value.startswith("textures/"):
+                        old_paths_from_json.add(tex_value)
+            except:
+                pass
+    
+    # Với mỗi old path, tìm file tương ứng hiện tại
+    for old_path in old_paths_from_json:
+        # Chuyển old path thành file path để tìm
+        # textures/item/fb_item/fb_19/0 → staging/target/rp/textures/item/fb_item/fb_19/0.png
+        old_file_path = os.path.join(textures_root, old_path.replace("textures/", "").replace("/", os.sep) + ".png")
         
-        # Đường dẫn mới (sau khi xáo trộn)
-        current_rel_path = os.path.relpath(current_abs_path, textures_root)
-        new_texture_path = "textures/" + current_rel_path.replace(os.sep, '/')[:-4]  # Bỏ .png
-        
-        path_mapping[old_texture_path] = new_texture_path
+        # Tìm file này hiện tại ở đâu (sau khi xáo trộn)
+        if os.path.exists(old_file_path):
+            # File vẫn ở vị trí cũ, không bị xáo trộn
+            path_mapping[old_path] = old_path
+        else:
+            # File đã bị xáo trộn, tìm trong toàn bộ textures
+            found = False
+            for root, dirs, files in os.walk(textures_root):
+                rel_root = os.path.relpath(root, textures_root)
+                should_skip = any(rel_root == skip or rel_root.startswith(skip + os.sep) for skip in skip_folders)
+                
+                if not should_skip:
+                    for file in files:
+                        if file.endswith('.png') and file not in ['item_texture.json', 'terrain_texture.json']:
+                            abs_path = os.path.join(root, file)
+                            
+                            # Kiểm tra xem đây có phải là file gốc không
+                            # Dựa vào tên file gốc từ old_path
+                            old_filename = old_path.split('/')[-1]  # Lấy tên file cuối
+                            current_filename = os.path.splitext(file)[0]
+                            
+                            # Tìm trong file_mapping xem file gốc này đã được rename thành gì
+                            original_rel_path = old_path.replace("textures/", "").replace("/", os.sep)
+                            if original_rel_path in file_mapping:
+                                expected_new_name = file_mapping[original_rel_path]
+                                if current_filename == expected_new_name or current_filename.startswith(expected_new_name + "_"):
+                                    # Đây chính là file cần tìm
+                                    current_rel_path = os.path.relpath(abs_path, textures_root)
+                                    new_texture_path = "textures/" + current_rel_path.replace(os.sep, '/')[:-4]
+                                    path_mapping[old_path] = new_texture_path
+                                    found = True
+                                    break
+            
+            if not found:
+                # Nếu vẫn không tìm thấy, có thể file này không tồn tại
+                pass
     
     # Bước 7: Cập nhật item_texture.json và terrain_texture.json
     if os.path.exists(item_texture_path):
