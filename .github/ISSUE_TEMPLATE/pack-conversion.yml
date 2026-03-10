@@ -143,7 +143,6 @@ body:
         - label: 'Resolve Groups'
         - label: 'Attachable Dupe'
         - label: 'Random Name Json'
-        - label: 'Merge Json Models'
         - label: 'Directory Confusion'
 
 
