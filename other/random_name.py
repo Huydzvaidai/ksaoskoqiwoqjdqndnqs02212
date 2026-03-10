@@ -203,40 +203,74 @@ def randomize_item_textures():
         if old_texture_path.startswith("textures/item/"):
             continue
             
+        print(f"[DEBUG] Đang tìm mapping cho: {old_texture_path}")
+        
         # Tìm file PNG tương ứng
         found_match = False
         
-        # Trước tiên, kiểm tra xem có file nào khớp chính xác không
+        # Trước tiên, kiểm tra xem có file nào khớp chính xác không (file không được rename)
         if old_texture_path in current_png_files:
             path_mapping[old_texture_path] = old_texture_path
+            print(f"[DEBUG] Tìm thấy khớp chính xác: {old_texture_path}")
             found_match = True
         else:
-            # Tìm file khớp dựa trên tên gốc từ file_mapping
+            print(f"[DEBUG] Không tìm thấy khớp chính xác, thử tìm qua file_mapping...")
+            
+            # Tìm file khớp dựa trên tên gốc từ file_mapping (file được rename)
             old_path_without_prefix = old_texture_path.replace("textures/", "")
             
             for old_rel_path, new_name in file_mapping.items():
                 if old_path_without_prefix == old_rel_path:
+                    print(f"[DEBUG] Tìm thấy trong file_mapping: {old_rel_path} -> {new_name}")
                     # Tìm file PNG có tên new_name (có thể có suffix)
                     for texture_path, file_path in current_png_files.items():
                         file_base = os.path.splitext(os.path.basename(file_path))[0]
                         if file_base == new_name or file_base.startswith(new_name + "_"):
                             path_mapping[old_texture_path] = texture_path
+                            print(f"[DEBUG] Mapping thành công: {old_texture_path} -> {texture_path}")
                             found_match = True
                             break
                     break
             
             # Nếu vẫn không tìm thấy, thử tìm bằng tên file cuối cùng
             if not found_match:
+                print(f"[DEBUG] Thử tìm bằng tên file cuối cùng...")
                 old_filename = os.path.basename(old_texture_path)
                 for texture_path, file_path in current_png_files.items():
                     current_filename = os.path.basename(texture_path)
                     # So sánh tên file (có thể có prefix campfire_)
                     if current_filename == old_filename or current_filename.endswith("_" + old_filename):
                         path_mapping[old_texture_path] = texture_path
+                        print(f"[DEBUG] Mapping by filename: {old_texture_path} -> {texture_path}")
+                        found_match = True
+                        break
+            
+            # Nếu vẫn không tìm thấy, tìm file có tên tương tự sau khi xáo trộn
+            if not found_match:
+                print(f"[DEBUG] Thử tìm file có tên tương tự...")
+                # Tách tên file gốc (bỏ đường dẫn)
+                original_basename = os.path.basename(old_texture_path)
+                
+                # Tìm trong current_png_files xem có file nào có tên gốc tương tự không
+                for texture_path, file_path in current_png_files.items():
+                    file_basename = os.path.basename(texture_path)
+                    
+                    # Nếu file có prefix campfire_ và tên gốc khớp
+                    if file_basename.startswith("campfire_") and original_basename in file_basename:
+                        path_mapping[old_texture_path] = texture_path
+                        print(f"[DEBUG] Mapping by similar name: {old_texture_path} -> {texture_path}")
+                        found_match = True
+                        break
+                    
+                    # Hoặc nếu tên file khớp hoàn toàn
+                    if file_basename == original_basename:
+                        path_mapping[old_texture_path] = texture_path
+                        print(f"[DEBUG] Mapping by exact basename: {old_texture_path} -> {texture_path}")
                         found_match = True
                         break
         
         if not found_match:
+            print(f"[DEBUG] KHÔNG TÌM THẤY mapping cho: {old_texture_path}")
             # Giữ nguyên path cũ nếu không tìm thấy
             path_mapping[old_texture_path] = old_texture_path
     
