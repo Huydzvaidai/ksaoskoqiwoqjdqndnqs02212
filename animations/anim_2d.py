@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 from PIL import Image
-from .geometry import GEOMETRY_2D_32x32
+from geometry import GEOMETRY_2D_32x32
 
 animation_counter = 0
 render_controllers = {}
