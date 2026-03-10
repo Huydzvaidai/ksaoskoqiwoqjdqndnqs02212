@@ -5,6 +5,9 @@ import glob
 import json
 import shutil
 
+# Global mapping dictionary để lưu tất cả path mappings
+global_path_mapping = {}
+
 def random_name():
     """Tạo tên random 45 ký tự chữ cái in thường và số xen kẽ"""
     return 'campfire_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=45))
@@ -15,6 +18,8 @@ def random_short_name():
 
 def randomize_item_textures():
     """Random tên thư mục và file texture"""
+    global global_path_mapping
+    
     item_texture_path = "staging/target/rp/textures/item_texture.json"
     terrain_texture_path = "staging/target/rp/textures/terrain_texture.json"
     textures_root = "staging/target/rp/textures"
@@ -105,7 +110,7 @@ def randomize_item_textures():
             new_path = os.path.join(os.path.dirname(abs_path), new_name + '.png')
             shutil.move(abs_path, new_path)
     
-    # Bước 4.5: Xáo trộn 70% file PNG giữa các thư mục
+    # Bước 4.5: Xáo trộn 100% file PNG giữa các thư mục
     all_png_files = []
     for root, dirs, files in os.walk(textures_root):
         rel_root = os.path.relpath(root, textures_root)
@@ -175,14 +180,30 @@ def randomize_item_textures():
                             path_mapping[old_texture_path] = new_texture_path
                             break
     
-    # Bước 7: Cập nhật item_texture.json và terrain_texture.json
+    # Thêm mapping vào global mapping
+    global_path_mapping.update(path_mapping)
+
+def update_all_mappings():
+    """Cập nhật tất cả file với global path mapping"""
+    global global_path_mapping
+    
+    if not global_path_mapping:
+        return
+    
+    # Cập nhật item_texture.json và terrain_texture.json
+    item_texture_path = "staging/target/rp/textures/item_texture.json"
+    terrain_texture_path = "staging/target/rp/textures/terrain_texture.json"
+    
     if os.path.exists(item_texture_path):
-        item_data = texture_data_combined.get('item', {})
+        with open(item_texture_path, 'r', encoding='utf-8') as f:
+            item_texture_data = json.load(f)
+        
+        item_data = item_texture_data.get("texture_data", {})
         updated_textures = 0
         for key, value in item_data.items():
             old_texture_path = value.get("textures", "")
-            if old_texture_path in path_mapping:
-                item_data[key]["textures"] = path_mapping[old_texture_path]
+            if old_texture_path in global_path_mapping:
+                item_data[key]["textures"] = global_path_mapping[old_texture_path]
                 updated_textures += 1
         
         item_texture_data['texture_data'] = item_data
@@ -190,19 +211,22 @@ def randomize_item_textures():
             json.dump(item_texture_data, f, ensure_ascii=False, indent=0)
     
     if os.path.exists(terrain_texture_path):
-        terrain_data = texture_data_combined.get('terrain', {})
+        with open(terrain_texture_path, 'r', encoding='utf-8') as f:
+            terrain_texture_data = json.load(f)
+        
+        terrain_data = terrain_texture_data.get("texture_data", {})
         updated_textures = 0
         for key, value in terrain_data.items():
             old_texture_path = value.get("textures", "")
-            if old_texture_path in path_mapping:
-                terrain_data[key]["textures"] = path_mapping[old_texture_path]
+            if old_texture_path in global_path_mapping:
+                terrain_data[key]["textures"] = global_path_mapping[old_texture_path]
                 updated_textures += 1
         
         terrain_texture_data['texture_data'] = terrain_data
         with open(terrain_texture_path, 'w', encoding='utf-8') as f:
             json.dump(terrain_texture_data, f, ensure_ascii=False, indent=0)
     
-    # Bước 8: Cập nhật attachables
+    # Cập nhật attachables
     attachables_dir = "staging/target/rp/attachables"
     updated_count = 0
     
@@ -210,24 +234,29 @@ def randomize_item_textures():
         json_files = list(glob.glob(f"{attachables_dir}/**/*.json", recursive=True))
         
         for json_file in json_files:
-            with open(json_file, 'r', encoding='utf-8') as jf:
-                attachable_data = json.load(jf)
-            
-            desc = attachable_data.get("minecraft:attachable", {}).get("description", {})
-            textures = desc.get("textures", {})
-            updated = False
-            
-            for tex_key, tex_value in textures.items():
-                if tex_value:
-                    for old_path, new_path in path_mapping.items():
-                        if old_path in tex_value:
-                            textures[tex_key] = tex_value.replace(old_path, new_path)
-                            updated = True
-            
-            if updated:
-                with open(json_file, 'w', encoding='utf-8') as jf:
-                    json.dump(attachable_data, jf, ensure_ascii=False, indent=0)
-                updated_count += 1
+            try:
+                with open(json_file, 'r', encoding='utf-8') as f:
+                    attachable_data = json.load(f)
+                
+                desc = attachable_data.get("minecraft:attachable", {}).get("description", {})
+                textures = desc.get("textures", {})
+                updated = False
+                
+                for tex_key, tex_value in textures.items():
+                    if tex_value:
+                        for old_path, new_path in global_path_mapping.items():
+                            if old_path in tex_value:
+                                textures[tex_key] = tex_value.replace(old_path, new_path)
+                                updated = True
+                
+                if updated:
+                    with open(json_file, 'w', encoding='utf-8') as f:
+                        json.dump(attachable_data, f, ensure_ascii=False, indent=2)
+                    updated_count += 1
+            except:
+                pass
+    """Tạo tên random 15 ký tự chữ cái in thường và số cho thư mục"""
+    return 'campfire_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=15))
 
 def random_folder_name():
     """Tạo tên random 15 ký tự chữ cái in thường và số cho thư mục"""
@@ -395,6 +424,8 @@ def check_randomized():
 
 def randomize_2d_animation_textures():
     """Random tên và xáo trộn texture của 2D animations (xử lý thư mục item)"""
+    global global_path_mapping
+    
     import random
     import shutil
     from pathlib import Path
@@ -514,38 +545,25 @@ def randomize_2d_animation_textures():
                         path_mapping[old_texture_path] = new_texture_path
                         break
     
-    # Bước 9: Cập nhật attachables
-    attachables_dir = Path("staging/target/rp/attachables")
-    
-    if attachables_dir.exists():
-        for json_file in attachables_dir.rglob("*.json"):
-            try:
-                with open(json_file, 'r', encoding='utf-8') as f:
-                    attachable_data = json.load(f)
-                
-                desc = attachable_data.get("minecraft:attachable", {}).get("description", {})
-                textures = desc.get("textures", {})
-                updated = False
-                
-                for tex_key, tex_value in textures.items():
-                    if tex_value:
-                        for old_path, new_path in path_mapping.items():
-                            if old_path in tex_value:
-                                textures[tex_key] = tex_value.replace(old_path, new_path)
-                                updated = True
-                
-                if updated:
-                    with open(json_file, 'w', encoding='utf-8') as f:
-                        json.dump(attachable_data, f, ensure_ascii=False, indent=2)
-            except:
-                pass
+    # Thêm mapping vào global mapping
+    global_path_mapping.update(path_mapping)
 
 if __name__ == "__main__":
+    # Reset global mapping
+    global_path_mapping = {}
+    
+    # Thực hiện randomization
     randomize_item_textures()
     randomize_2d_animation_textures()
     rename_json_files()
     
+    # Cập nhật tất cả mapping một lần duy nhất
+    update_all_mappings()
+    
     if not check_randomized():
+        # Reset và thử lại
+        global_path_mapping = {}
         randomize_item_textures()
         randomize_2d_animation_textures()
         rename_json_files()
+        update_all_mappings()
