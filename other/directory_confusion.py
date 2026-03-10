@@ -147,45 +147,69 @@ def split_render_controllers():
         except Exception as e:
             continue
 
+def random_folder_name():
+    """Tạo tên thư mục random với prefix campfire_ + 15 ký tự"""
+    import string
+    return 'campfire_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=15))
+
 def confuse_directory():
     """Xáo trộn file vào thư mục con ngẫu nhiên"""
     directories = [
-        "staging/target/rp/attachables"
+        "staging/target/rp/attachables",
+        "staging/target/rp/animations",
+        "staging/target/rp/animation_controllers",
+        "staging/target/rp/render_controllers"
     ]
     
     for directory in directories:
         if not os.path.exists(directory):
             continue
         
-        json_files = list(glob.glob(f"{directory}/**/*.json", recursive=True))
+        # Thu thập tất cả file JSON ở root của directory (không đệ quy)
+        json_files = [f for f in glob.glob(f"{directory}/*.json") if os.path.isfile(f)]
+        
         if not json_files:
             continue
         
-        # Thu thập tất cả thư mục con hiện có
-        existing_dirs = []
-        for root, dirs, files in os.walk(directory):
-            for d in dirs:
-                existing_dirs.append(os.path.join(root, d))
+        # Tạo 1-5 thư mục con ngẫu nhiên
+        num_folders = random.randint(1, 5)
+        created_dirs = []
         
-        # Nếu không có thư mục con, bỏ qua
-        if not existing_dirs:
-            continue
+        for _ in range(num_folders):
+            folder_name = random_folder_name()
+            folder_path = os.path.join(directory, folder_name)
+            os.makedirs(folder_path, exist_ok=True)
+            created_dirs.append(folder_path)
+        
+        # Thu thập tất cả thư mục con (bao gồm cả thư mục vừa tạo và thư mục có sẵn)
+        all_dirs = created_dirs.copy()
+        for root, dirs, files in os.walk(directory):
+            if root != directory:  # Bỏ qua thư mục root
+                for d in dirs:
+                    dir_path = os.path.join(root, d)
+                    if dir_path not in all_dirs:
+                        all_dirs.append(dir_path)
+        
+        # Nếu không có thư mục con nào, chỉ dùng thư mục vừa tạo
+        if not all_dirs:
+            all_dirs = created_dirs
         
         # Xáo trộn 100% file vào các thư mục con ngẫu nhiên
         for json_file in json_files:
-            target_dir = random.choice(existing_dirs)
-            new_path = os.path.join(target_dir, os.path.basename(json_file))
-            
-            # Nếu file đã tồn tại, thêm suffix số
-            if os.path.exists(new_path):
-                base_name = os.path.splitext(os.path.basename(json_file))[0]
-                counter = 1
-                while os.path.exists(new_path):
-                    new_name = f"{base_name}_{counter}.json"
-                    new_path = os.path.join(target_dir, new_name)
-                    counter += 1
-            
-            shutil.move(json_file, new_path)
+            if all_dirs:
+                target_dir = random.choice(all_dirs)
+                new_path = os.path.join(target_dir, os.path.basename(json_file))
+                
+                # Nếu file đã tồn tại, thêm suffix số
+                if os.path.exists(new_path):
+                    base_name = os.path.splitext(os.path.basename(json_file))[0]
+                    counter = 1
+                    while os.path.exists(new_path):
+                        new_name = f"{base_name}_{counter}.json"
+                        new_path = os.path.join(target_dir, new_name)
+                        counter += 1
+                
+                shutil.move(json_file, new_path)
 
 if __name__ == "__main__":
     split_animations()
