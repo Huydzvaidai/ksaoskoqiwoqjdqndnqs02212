@@ -202,11 +202,18 @@ def randomize_item_textures():
     if os.path.exists(item_texture_path):
         item_data = texture_data_combined.get('item', {})
         updated_textures = 0
+        missing_files = []
+        
         for key, value in item_data.items():
             old_texture_path = value.get("textures", "")
             if old_texture_path in path_mapping:
                 item_data[key]["textures"] = path_mapping[old_texture_path]
                 updated_textures += 1
+            elif old_texture_path:
+                # Kiểm tra xem file có tồn tại không
+                file_path = os.path.join(textures_root, old_texture_path.replace("textures/", "").replace("/", os.sep) + ".png")
+                if not os.path.exists(file_path):
+                    missing_files.append(old_texture_path)
         
         item_texture_data['texture_data'] = item_data
         with open(item_texture_path, 'w', encoding='utf-8') as f:
@@ -215,11 +222,18 @@ def randomize_item_textures():
     if os.path.exists(terrain_texture_path):
         terrain_data = texture_data_combined.get('terrain', {})
         updated_textures = 0
+        missing_files = []
+        
         for key, value in terrain_data.items():
             old_texture_path = value.get("textures", "")
             if old_texture_path in path_mapping:
                 terrain_data[key]["textures"] = path_mapping[old_texture_path]
                 updated_textures += 1
+            elif old_texture_path:
+                # Kiểm tra xem file có tồn tại không
+                file_path = os.path.join(textures_root, old_texture_path.replace("textures/", "").replace("/", os.sep) + ".png")
+                if not os.path.exists(file_path):
+                    missing_files.append(old_texture_path)
         
         terrain_texture_data['texture_data'] = terrain_data
         with open(terrain_texture_path, 'w', encoding='utf-8') as f:
@@ -228,6 +242,8 @@ def randomize_item_textures():
     # Bước 8: Cập nhật attachables
     attachables_dir = "staging/target/rp/attachables"
     updated_count = 0
+    missing_files_attachables = []
+    unmapped_paths = []
     
     if os.path.exists(attachables_dir):
         json_files = list(glob.glob(f"{attachables_dir}/**/*.json", recursive=True))
@@ -245,14 +261,27 @@ def randomize_item_textures():
                     if tex_value:
                         # Sử dụng path_mapping để thay thế đường dẫn cũ thành mới
                         original_tex_value = tex_value
+                        found_mapping = False
+                        
                         for old_path, new_path in path_mapping.items():
                             if old_path in tex_value:
                                 tex_value = tex_value.replace(old_path, new_path)
+                                found_mapping = True
                         
                         # Nếu có thay đổi, cập nhật
                         if tex_value != original_tex_value:
                             textures[tex_key] = tex_value
                             updated = True
+                        elif not found_mapping and original_tex_value.startswith("textures/"):
+                            # Kiểm tra xem file có tồn tại không
+                            file_path = os.path.join(textures_root, original_tex_value.replace("textures/", "").replace("/", os.sep) + ".png")
+                            if not os.path.exists(file_path):
+                                if original_tex_value not in missing_files_attachables:
+                                    missing_files_attachables.append(original_tex_value)
+                            else:
+                                # File tồn tại nhưng không có mapping
+                                if original_tex_value not in unmapped_paths:
+                                    unmapped_paths.append(original_tex_value)
                 
                 if updated:
                     with open(json_file, 'w', encoding='utf-8') as jf:
@@ -261,20 +290,6 @@ def randomize_item_textures():
             except Exception as e:
                 # Bỏ qua lỗi và tiếp tục xử lý file khác
                 pass
-    
-    print(f"Đã tạo {len(path_mapping)} texture mappings chính xác 100%")
-    print(f"Đang cập nhật {len(path_mapping)} texture mappings...")
-    
-    # In thông tin cập nhật cho từng loại file
-    if os.path.exists(item_texture_path):
-        item_count = len(texture_data_combined.get('item', {}))
-        print(f"Cập nhật {item_count}/{item_count} textures trong item_texture.json")
-    
-    if os.path.exists(terrain_texture_path):
-        terrain_count = len(texture_data_combined.get('terrain', {}))
-        print(f"Cập nhật {terrain_count}/{terrain_count} textures trong terrain_texture.json")
-    
-    print(f"Cập nhật {updated_count} attachable files")
     
     return path_mapping  # Return mapping để có thể sử dụng nếu cần
 
@@ -410,14 +425,12 @@ def check_randomized():
         if os.path.exists(directory):
             for json_file in glob.glob(f"{directory}/**/*.json", recursive=True):
                 if not os.path.basename(json_file).startswith("campfire_"):
-                    print(f"[DEBUG] File chưa random: {json_file}")
                     return False
             
             if directory in ["staging/target/rp/attachables", "staging/target/rp/models/entity"]:
                 for root, dirs_list, files in os.walk(directory):
                     for dir_name in dirs_list:
                         if not dir_name.startswith("campfire_"):
-                            print(f"[DEBUG] Thư mục chưa random: {os.path.join(root, dir_name)}")
                             return False
     
     # Kiểm tra textures
@@ -432,14 +445,11 @@ def check_randomized():
                     if file in ['item_texture.json', 'terrain_texture.json']:
                         continue
                     if file.endswith('.png') and not file.startswith("campfire_"):
-                        print(f"[DEBUG] File PNG chưa random: {os.path.join(root, file)}")
                         return False
                 for dir_name in dirs_list:
                     if dir_name not in skip_folders and not dir_name.startswith("campfire_"):
-                        print(f"[DEBUG] Thư mục texture chưa random: {os.path.join(root, dir_name)}")
                         return False
     
-    print("[DEBUG] Tất cả file và thư mục đã được random")
     return True
 
 if __name__ == "__main__":
