@@ -35,28 +35,24 @@ def randomize_item_textures():
             terrain_texture_data = json.load(f)
             texture_data_combined['terrain'] = terrain_texture_data.get("texture_data", {})
     
-    # Bước 0: Lưu TẤT CẢ đường dẫn file PNG trước khi random và xáo trộn
+    # Bước 0: Lưu TẤT CẢ đường dẫn file PNG trước khi random và xáo trộn (bao gồm cả skip folders)
     all_original_files = {}  # texture_path -> abs_path
     
-    # Danh sách thư mục bỏ qua
-    skip_folders = ['gui', 'campfire_item']
-    
     for root, dirs, files in os.walk(textures_root):
-        rel_root = os.path.relpath(root, textures_root)
-        should_skip = any(rel_root == skip or rel_root.startswith(skip + os.sep) for skip in skip_folders)
-        
-        if not should_skip:
-            for file in files:
-                if file.endswith('.png') and file not in ['item_texture.json', 'terrain_texture.json']:
-                    abs_path = os.path.join(root, file)
-                    rel_path = os.path.relpath(abs_path, textures_root)
-                    rel_path_no_ext = rel_path[:-4]  # Bỏ .png
-                    texture_path = "textures/" + rel_path_no_ext.replace(os.sep, '/')
-                    all_original_files[texture_path] = abs_path
+        for file in files:
+            if file.endswith('.png') and file not in ['item_texture.json', 'terrain_texture.json']:
+                abs_path = os.path.join(root, file)
+                rel_path = os.path.relpath(abs_path, textures_root)
+                rel_path_no_ext = rel_path[:-4]  # Bỏ .png
+                texture_path = "textures/" + rel_path_no_ext.replace(os.sep, '/')
+                all_original_files[texture_path] = abs_path
     
     # Bước 1: Thu thập tất cả file và thư mục cần rename
     files_to_rename = []  # [(abs_path, relative_path_without_ext)]
     folders_to_rename = []  # [(abs_path, relative_path)]
+    
+    # Danh sách thư mục bỏ qua
+    skip_folders = ['gui', 'campfire_item']
     
     for root, dirs, files in os.walk(textures_root):
         # Lọc bỏ thư mục cần skip
@@ -114,11 +110,22 @@ def randomize_item_textures():
         new_name = random_short_name()
         folder_mapping[rel_path] = new_name
     
-    # Bước 4: Rename files
+    # Bước 4: Rename files (với xử lý trùng tên)
     for abs_path, rel_path_no_ext in files_to_rename:
         if os.path.exists(abs_path):
             new_name = file_mapping[rel_path_no_ext]
             new_path = os.path.join(os.path.dirname(abs_path), new_name + '.png')
+            
+            # Xử lý trùng tên
+            if os.path.exists(new_path):
+                counter = 1
+                while os.path.exists(new_path):
+                    new_name_with_suffix = f"{new_name}_{counter}"
+                    new_path = os.path.join(os.path.dirname(abs_path), new_name_with_suffix + '.png')
+                    counter += 1
+                # Cập nhật file_mapping với tên mới có suffix
+                file_mapping[rel_path_no_ext] = new_name_with_suffix
+            
             shutil.move(abs_path, new_path)
     
     # Bước 4.5: Xáo trộn 70% file PNG giữa các thư mục
@@ -183,21 +190,17 @@ def randomize_item_textures():
     # Bước 6: Tạo path mapping bằng cách so sánh trước và sau
     path_mapping = {}
     
-    # Thu thập tất cả file PNG hiện tại (sau khi xáo trộn)
+    # Thu thập tất cả file PNG hiện tại (sau khi xáo trộn) - bao gồm cả skip folders
     current_files = {}  # filename_without_ext -> current_texture_path
     
     for root, dirs, files in os.walk(textures_root):
-        rel_root = os.path.relpath(root, textures_root)
-        should_skip = any(rel_root == skip or rel_root.startswith(skip + os.sep) for skip in skip_folders)
-        
-        if not should_skip:
-            for file in files:
-                if file.endswith('.png') and file not in ['item_texture.json', 'terrain_texture.json']:
-                    abs_path = os.path.join(root, file)
-                    current_rel_path = os.path.relpath(abs_path, textures_root)
-                    current_texture_path = "textures/" + current_rel_path.replace(os.sep, '/')[:-4]
-                    filename_without_ext = os.path.splitext(file)[0]
-                    current_files[filename_without_ext] = current_texture_path
+        for file in files:
+            if file.endswith('.png') and file not in ['item_texture.json', 'terrain_texture.json']:
+                abs_path = os.path.join(root, file)
+                current_rel_path = os.path.relpath(abs_path, textures_root)
+                current_texture_path = "textures/" + current_rel_path.replace(os.sep, '/')[:-4]
+                filename_without_ext = os.path.splitext(file)[0]
+                current_files[filename_without_ext] = current_texture_path
     
     # Tạo mapping từ original files
     for original_texture_path, original_abs_path in all_original_files.items():
@@ -218,12 +221,16 @@ def randomize_item_textures():
                 found = True
                 break
         
-        # Nếu không tìm thấy, có thể file không bị rename, chỉ bị xáo trộn
+        # Nếu không tìm thấy, có thể file không bị rename, chỉ bị xáo trộn hoặc nằm trong skip folder
         if not found:
             for current_filename, current_texture_path in current_files.items():
                 if current_filename == original_filename or current_filename.startswith(original_filename + "_"):
                     path_mapping[original_texture_path] = current_texture_path
                     break
+            else:
+                # Nếu vẫn không tìm thấy, có thể file nằm trong skip folder và không bị thay đổi
+                if any(skip in original_texture_path for skip in skip_folders):
+                    path_mapping[original_texture_path] = original_texture_path
     
     # Debug: In số lượng mappings
     print(f"[DEBUG] Tổng số file gốc: {len(all_original_files)}")
@@ -323,6 +330,11 @@ def randomize_item_textures():
                                     break
                         
                         if not found_mapping:
+                            # Xử lý đặc biệt cho paths trong campfire_item (không bị random)
+                            if "campfire_item" in original_tex_value:
+                                # Giữ nguyên path cho campfire_item
+                                continue
+                            
                             # Kiểm tra xem file có tồn tại không
                             file_path = os.path.join(textures_root, original_tex_value.replace("textures/", "").replace("/", os.sep) + ".png")
                             if not os.path.exists(file_path):
