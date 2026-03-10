@@ -157,6 +157,7 @@ def confuse_directory():
     directories = [
         "staging/target/rp/attachables",
         "staging/target/rp/animations",
+        "staging/target/rp/models/entity",
         "staging/target/rp/animation_controllers",
         "staging/target/rp/render_controllers"
     ]
