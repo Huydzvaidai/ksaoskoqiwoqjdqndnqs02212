@@ -180,43 +180,62 @@ def randomize_item_textures():
             # Cập nhật folder_mapping để tracking
             folder_mapping["item"] = new_item_name
     
-    # Bước 6: Tạo path mapping SAU KHI xáo trộn (dựa trên all_original_files)
+    # Bước 6: Tạo path mapping bằng cách so sánh trước và sau
     path_mapping = {}
     
-    # Với mỗi file gốc, tìm vị trí hiện tại của nó
-    for original_texture_path, original_abs_path in all_original_files.items():
-        # Lấy tên file gốc
-        original_filename = os.path.basename(original_abs_path)[:-4]  # Bỏ .png
-        original_rel_path = original_texture_path.replace("textures/", "").replace("/", os.sep)
+    # Thu thập tất cả file PNG hiện tại (sau khi xáo trộn)
+    current_files = {}  # filename_without_ext -> current_texture_path
+    
+    for root, dirs, files in os.walk(textures_root):
+        rel_root = os.path.relpath(root, textures_root)
+        should_skip = any(rel_root == skip or rel_root.startswith(skip + os.sep) for skip in skip_folders)
         
-        # Tìm tên mới từ file_mapping (nếu có)
+        if not should_skip:
+            for file in files:
+                if file.endswith('.png') and file not in ['item_texture.json', 'terrain_texture.json']:
+                    abs_path = os.path.join(root, file)
+                    current_rel_path = os.path.relpath(abs_path, textures_root)
+                    current_texture_path = "textures/" + current_rel_path.replace(os.sep, '/')[:-4]
+                    filename_without_ext = os.path.splitext(file)[0]
+                    current_files[filename_without_ext] = current_texture_path
+    
+    # Tạo mapping từ original files
+    for original_texture_path, original_abs_path in all_original_files.items():
+        original_rel_path = original_texture_path.replace("textures/", "").replace("/", os.sep)
+        original_filename = os.path.splitext(os.path.basename(original_abs_path))[0]
+        
+        # Tìm tên mới từ file_mapping
         if original_rel_path in file_mapping:
             new_filename = file_mapping[original_rel_path]
         else:
             new_filename = original_filename
         
-        # Tìm file này hiện tại ở đâu (sau khi xáo trộn)
+        # Tìm trong current_files
         found = False
-        for root, dirs, files in os.walk(textures_root):
-            rel_root = os.path.relpath(root, textures_root)
-            should_skip = any(rel_root == skip or rel_root.startswith(skip + os.sep) for skip in skip_folders)
-            
-            if not should_skip:
-                for file in files:
-                    if file.endswith('.png') and file not in ['item_texture.json', 'terrain_texture.json']:
-                        file_base = os.path.splitext(file)[0]
-                        
-                        # Kiểm tra xem đây có phải file cần tìm không
-                        if file_base == new_filename or file_base.startswith(new_filename + "_"):
-                            abs_path = os.path.join(root, file)
-                            current_rel_path = os.path.relpath(abs_path, textures_root)
-                            new_texture_path = "textures/" + current_rel_path.replace(os.sep, '/')[:-4]
-                            path_mapping[original_texture_path] = new_texture_path
-                            found = True
-                            break
-            
-            if found:
+        for current_filename, current_texture_path in current_files.items():
+            if current_filename == new_filename or current_filename.startswith(new_filename + "_"):
+                path_mapping[original_texture_path] = current_texture_path
+                found = True
                 break
+        
+        # Nếu không tìm thấy, có thể file không bị rename, chỉ bị xáo trộn
+        if not found:
+            for current_filename, current_texture_path in current_files.items():
+                if current_filename == original_filename or current_filename.startswith(original_filename + "_"):
+                    path_mapping[original_texture_path] = current_texture_path
+                    break
+    
+    # Debug: In số lượng mappings
+    print(f"[DEBUG] Tổng số file gốc: {len(all_original_files)}")
+    print(f"[DEBUG] Tổng số file hiện tại: {len(current_files)}")
+    print(f"[DEBUG] Tổng số mappings tạo được: {len(path_mapping)}")
+    
+    # Debug: In một vài mapping mẫu
+    count = 0
+    for old_path, new_path in path_mapping.items():
+        if count < 5:
+            print(f"[DEBUG] {old_path} -> {new_path}")
+            count += 1
     
     # Bước 7: Cập nhật item_texture.json và terrain_texture.json
     if os.path.exists(item_texture_path):
