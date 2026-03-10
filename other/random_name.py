@@ -38,6 +38,9 @@ def randomize_item_textures():
     # Bước 0: Lưu TẤT CẢ đường dẫn file PNG trước khi random và xáo trộn
     all_original_files = {}  # texture_path -> abs_path
     
+    # Danh sách thư mục bỏ qua
+    skip_folders = ['gui', 'campfire_item']
+    
     for root, dirs, files in os.walk(textures_root):
         rel_root = os.path.relpath(root, textures_root)
         should_skip = any(rel_root == skip or rel_root.startswith(skip + os.sep) for skip in skip_folders)
@@ -54,9 +57,6 @@ def randomize_item_textures():
     # Bước 1: Thu thập tất cả file và thư mục cần rename
     files_to_rename = []  # [(abs_path, relative_path_without_ext)]
     folders_to_rename = []  # [(abs_path, relative_path)]
-    
-    # Danh sách thư mục bỏ qua
-    skip_folders = ['gui', 'campfire_item']
     
     for root, dirs, files in os.walk(textures_root):
         # Lọc bỏ thư mục cần skip
