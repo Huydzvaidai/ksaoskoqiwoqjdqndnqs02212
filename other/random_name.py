@@ -179,7 +179,7 @@ def randomize_item_textures():
                 if texture_path:
                     current_texture_paths.add(texture_path)
     
-    print(f"[DEBUG] Tìm thấy {len(current_texture_paths)} texture paths trong JSON files")
+    print(f"Tìm thấy {len(current_texture_paths)} texture paths trong JSON files")
     
     # Thu thập tất cả file PNG hiện có sau khi xáo trộn
     current_png_files = {}  # texture_path -> actual_file_path
@@ -195,10 +195,14 @@ def randomize_item_textures():
                     texture_path = "textures/" + rel_path.replace(os.sep, '/')[:-4]  # Bỏ .png
                     current_png_files[texture_path] = abs_path
     
-    print(f"[DEBUG] Tìm thấy {len(current_png_files)} PNG files sau xáo trộn")
+    print(f"Tìm thấy {len(current_png_files)} PNG files sau xáo trộn")
     
     # Tạo mapping cho tất cả texture paths
     for old_texture_path in current_texture_paths:
+        # Bỏ qua texture paths có prefix "textures/item/" vì sẽ được xử lý bởi randomize_2d_animation_textures()
+        if old_texture_path.startswith("textures/item/"):
+            continue
+            
         # Tìm file PNG tương ứng
         found_match = False
         
@@ -217,7 +221,6 @@ def randomize_item_textures():
                         file_base = os.path.splitext(os.path.basename(file_path))[0]
                         if file_base == new_name or file_base.startswith(new_name + "_"):
                             path_mapping[old_texture_path] = texture_path
-                            print(f"[DEBUG] randomize_item_textures mapping: {old_texture_path} -> {texture_path}")
                             found_match = True
                             break
                     break
@@ -230,7 +233,6 @@ def randomize_item_textures():
                     # So sánh tên file (có thể có prefix campfire_)
                     if current_filename == old_filename or current_filename.endswith("_" + old_filename):
                         path_mapping[old_texture_path] = texture_path
-                        print(f"[DEBUG] randomize_item_textures mapping by filename: {old_texture_path} -> {texture_path}")
                         found_match = True
                         break
         
@@ -240,7 +242,7 @@ def randomize_item_textures():
     
     # Thêm mapping vào global mapping
     global_path_mapping.update(path_mapping)
-    print(f"Đã tạo {len(path_mapping)} texture mappings")
+    print(f"Đã tạo {len(path_mapping)} texture mappings (không bao gồm item/)")
 
 def randomize_2d_animation_textures():
     """Random tên và xáo trộn texture của 2D animations (xử lý thư mục item)"""
@@ -396,7 +398,6 @@ def randomize_2d_animation_textures():
                     file_base = os.path.splitext(os.path.basename(file_path))[0]
                     if file_base == new_name or file_base.startswith(new_name + "_"):
                         path_mapping[old_texture_path] = texture_path
-                        print(f"[DEBUG] randomize_2d_animation_textures mapping: {old_texture_path} -> {texture_path}")
                         found_match = True
                         break
                 break
