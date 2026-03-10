@@ -51,12 +51,21 @@ try:
 except Exception as e: pass
 try:
     anim_2d_enabled = os.getenv("ANIMATION_2D_CONVERSION", "false")
+    print(f"[MANAGER] ANIMATION_2D_CONVERSION = {anim_2d_enabled}")
     if anim_2d_enabled == "true":
+        print("[MANAGER] Đang import anim_2d module...")
         import sys
         sys.path.insert(0, 'animations')
         import anim_2d
+        print("[MANAGER] Đang gọi anim_2d.scan_2d_animations()...")
         anim_2d.scan_2d_animations()
+        print("[MANAGER] Hoàn thành anim_2d.scan_2d_animations()")
+    else:
+        print("[MANAGER] ANIMATION_2D_CONVERSION không được bật")
 except Exception as e:
+    print(f"[MANAGER] Lỗi khi chạy anim_2d: {e}")
+    import traceback
+    traceback.print_exc()
     pass
 try:
     if os.getenv("GUI_CONVERSION") == "true":
