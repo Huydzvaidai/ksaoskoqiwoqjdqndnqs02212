@@ -11,7 +11,6 @@ texture_to_animation_info = {}  # Map texture path -> (controller_name, anim_nam
 
 def create_2d_geometry():
     """Tạo geometry file cho 2D animated items"""
-    print("[ANIM_2D] Bắt đầu tạo geometry file...")
     geometry_dir = Path("staging/target/rp/models/entity")
     geometry_dir.mkdir(parents=True, exist_ok=True)
     
@@ -19,22 +18,17 @@ def create_2d_geometry():
     
     # Kiểm tra nếu file đã tồn tại thì không tạo lại
     if geometry_file.exists():
-        print("[ANIM_2D] Geometry file đã tồn tại, bỏ qua tạo mới")
         return
     
     geometry_data = GEOMETRY_2D_32x32
 
     with open(geometry_file, 'w', encoding='utf-8') as f:
         json.dump(geometry_data, f, ensure_ascii=False, indent=2)
-    
-    print(f"[ANIM_2D] Đã tạo geometry file: {geometry_file}")
 
 def load_existing_render_controllers():
     global existing_configs
-    print("[ANIM_2D] Đang load existing render controllers...")
     render_dir = Path("staging/target/rp/render_controllers")
     if not render_dir.exists():
-        print("[ANIM_2D] Thư mục render_controllers chưa tồn tại")
         return
     for json_file in render_dir.glob("*.json"):
         try:
@@ -53,21 +47,17 @@ def load_existing_render_controllers():
                         frame_count_part = texture_formula.split(",")[-1].split("]")[0].strip()
                         frame_count = int(frame_count_part)
                         existing_configs[(frametime, frame_count)] = controller_name
-                        print(f"[ANIM_2D] Tìm thấy controller: {controller_name} (frametime={frametime}, frames={frame_count})")
                     except:
                         pass
         except:
             pass
-    print(f"[ANIM_2D] Đã load {len(existing_configs)} existing controllers")
 
 def update_attachables_with_controllers():
     """Cập nhật attachables với render controllers phù hợp"""
     global texture_to_animation_info
     
-    print("[ANIM_2D] Bắt đầu cập nhật attachables...")
     attachables_dir = Path("staging/target/rp/attachables")
     if not attachables_dir.exists():
-        print("[ANIM_2D] Thư mục attachables không tồn tại")
         return
     
     updated_count = 0
@@ -96,7 +86,6 @@ def update_attachables_with_controllers():
                 if texture_basename == default_basename or texture_path in default_texture or default_texture.endswith(texture_path):
                     matched_info = animation_info
                     matched_texture_path = texture_path
-                    print(f"[ANIM_2D] Match tìm thấy: {json_file.name} -> {texture_path}")
                     break
             
             if matched_info:
@@ -131,12 +120,12 @@ def update_attachables_with_controllers():
                 # Cập nhật scripts
                 description["scripts"] = {
                     "initialize": [
-                        "v.thirdperson_mainhand_rot_x = 0;",
+                        "v.thirdperson_mainhand_rot_x = 4.5;",
                         "v.thirdperson_mainhand_rot_y = 0;",
                         "v.thirdperson_mainhand_rot_z = 0;",
                         "v.thirdperson_mainhand_pos_x = 0;",
-                        "v.thirdperson_mainhand_pos_y = 1.5;",
-                        "v.thirdperson_mainhand_pos_z = 1.25;",
+                        "v.thirdperson_mainhand_pos_y = 3;",
+                        "v.thirdperson_mainhand_pos_z = 2;",
                         "v.thirdperson_mainhand_scale = 0.75;",
                         "v.thirdperson_hand_same = true;",
                         "v.firstperson_mainhand_rot_x = 0;",
@@ -174,25 +163,19 @@ def update_attachables_with_controllers():
                 with open(json_file, 'w', encoding='utf-8') as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
                 
-                print(f"[ANIM_2D] Đã cập nhật attachable: {json_file.name}")
                 updated_count += 1
         
         except Exception as e:
-            print(f"[ANIM_2D] Lỗi khi xử lý {json_file.name}: {e}")
             pass
     
     if updated_count > 0:
-        print(f"[ANIM_2D] Đã cập nhật {updated_count} attachables")
+        pass
 
 def scan_2d_animations():
     global animation_counter
-    print("[ANIM_2D] ========== BẮT ĐẦU SCAN 2D ANIMATIONS ==========")
     pack_dir = Path("./pack/assets")
     if not pack_dir.exists():
-        print("[ANIM_2D] Thư mục pack/assets không tồn tại!")
         return
-    
-    print(f"[ANIM_2D] Đang scan thư mục: {pack_dir}")
     
     # Tạo geometry file trước khi xử lý
     create_2d_geometry()
@@ -202,7 +185,6 @@ def scan_2d_animations():
     load_existing_render_controllers()
     processed = 0
     
-    print("[ANIM_2D] Bắt đầu quét các file JSON...")
     for json_file in pack_dir.rglob("*.json"):
         try:
             with open(json_file, 'r', encoding='utf-8') as f:
@@ -220,10 +202,8 @@ def scan_2d_animations():
             if not texture_file.exists():
                 continue
             
-            print(f"[ANIM_2D] Kiểm tra texture: {texture_file}")
             img = Image.open(texture_file)
             width, height = img.size
-            print(f"[ANIM_2D]   Kích thước: {width}x{height}")
             
             if height <= width:
                 continue
@@ -233,8 +213,6 @@ def scan_2d_animations():
             if frame_count <= 1:
                 continue
             
-            print(f"[ANIM_2D]   -> Phát hiện animated texture! Frames: {frame_count}")
-            
             mcmeta_file = Path(str(texture_file) + ".mcmeta")
             frametime = 1
             if mcmeta_file.exists():
@@ -243,12 +221,10 @@ def scan_2d_animations():
                         mcmeta_data = json.load(f)
                     animation = mcmeta_data.get("animation", {})
                     frametime = animation.get("frametime", 1)
-                    print(f"[ANIM_2D]   Frametime từ .mcmeta: {frametime}")
                 except:
                     pass
             
             if (frametime, frame_count) in existing_configs:
-                print(f"[ANIM_2D]   Controller đã tồn tại, bỏ qua")
                 continue
             
             # Tạo đường dẫn output trong staging/target/rp/textures
@@ -261,16 +237,12 @@ def scan_2d_animations():
             frame_dir = Path("staging/target/rp/textures") / relative_texture_path
             frame_dir.mkdir(parents=True, exist_ok=True)
             
-            print(f"[ANIM_2D]   Đang tách frames vào: {frame_dir}")
-            
             frame_size = width
             
             for i in range(frame_count):
                 frame_img = img.crop((0, i * frame_size, width, (i + 1) * frame_size))
                 frame_output_path = frame_dir / f"{i}.png"
                 frame_img.save(frame_output_path)
-            
-            print(f"[ANIM_2D]   Đã tách {frame_count} frames")
             
             animation_counter += 1
             anim_name = f"anim_{animation_counter}"
@@ -296,19 +268,12 @@ def scan_2d_animations():
             texture_path_for_attachable = str(relative_texture_path).replace('\\', '/')
             texture_to_animation_info[texture_path_for_attachable] = (controller_name, anim_name, frame_count)
             
-            print(f"[ANIM_2D]   Đã tạo controller: {controller_name}")
-            print(f"[ANIM_2D]   Mapping: {texture_path_for_attachable} -> {anim_name}")
-            
             processed += 1
         except Exception as e:
-            print(f"[ANIM_2D] Lỗi khi xử lý {json_file}: {e}")
             pass
-    
-    print(f"[ANIM_2D] Đã xử lý {processed} animated textures")
     
     # Cập nhật attachables với render controllers phù hợp
     if texture_to_animation_info:
-        print(f"[ANIM_2D] Có {len(texture_to_animation_info)} texture mappings")
         update_attachables_with_controllers()
     
     if render_controllers:
@@ -320,9 +285,6 @@ def scan_2d_animations():
         }
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(output_data, f, ensure_ascii=False, indent=2)
-        print(f"[ANIM_2D] Đã lưu {len(render_controllers)} render controllers vào: {output_path}")
-    
-    print("[ANIM_2D] ========== KẾT THÚC SCAN 2D ANIMATIONS ==========")
 
 if __name__ == "__main__":
     scan_2d_animations()
