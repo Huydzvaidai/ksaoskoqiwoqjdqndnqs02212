@@ -38,7 +38,7 @@ def randomize_item_textures():
             item_texture_data = json.load(f)
             for key, value in item_texture_data.get("texture_data", {}).items():
                 texture_path = value.get("textures", "")
-                if texture_path and not texture_path.startswith("textures/item/"):
+                if texture_path:
                     all_texture_paths.add(texture_path)
     
     if os.path.exists(terrain_texture_path):
@@ -168,6 +168,13 @@ def randomize_item_textures():
         else:
             print(f"[ERROR] File không tồn tại: {final_abs_path}")
             path_mapping[old_texture_path] = old_texture_path
+    
+    # Bước 9: Xử lý các texture paths không có file tương ứng (texture động hoặc không tồn tại)
+    for texture_path in all_texture_paths:
+        if texture_path not in path_mapping:
+            print(f"[NO_FILE] Texture path không có file: {texture_path}")
+            # Giữ nguyên path cho texture không có file
+            path_mapping[texture_path] = texture_path
     
     # Thêm mapping vào global mapping
     global_path_mapping.update(path_mapping)
@@ -596,7 +603,6 @@ if __name__ == "__main__":
     
     # Thực hiện randomization
     randomize_item_textures()
-    randomize_2d_animation_textures()
     rename_json_files()
     
     # Cập nhật tất cả mapping một lần duy nhất
@@ -606,6 +612,5 @@ if __name__ == "__main__":
         # Reset và thử lại
         global_path_mapping = {}
         randomize_item_textures()
-        randomize_2d_animation_textures()
         rename_json_files()
         update_all_mappings()
