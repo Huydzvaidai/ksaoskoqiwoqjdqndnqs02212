@@ -195,7 +195,7 @@ try:
         result2 = subprocess.run(["python", "other/group_resolve.py"], capture_output=True, text=True)
         result4 = subprocess.run(["python", "other/attachables_dupe.py"], capture_output=True, text=True)
         result5 = subprocess.run(["python", "other/directory_confusion.py"], capture_output=True, text=True)
-        result6 = subprocess.run(["python", "other/random_name.py"], text=True)
+        result6 = subprocess.run(["python", "other/random_name.py"], capture_output=True, text=True)
     else:
         if "clear animation folders" in other_conversion.lower() or "Clear animation folders" in other_conversion:
             result = subprocess.run(["python", "other/animations_clear.py"], capture_output=True, text=True)

@@ -232,18 +232,6 @@ def randomize_item_textures():
                 if any(skip in original_texture_path for skip in skip_folders):
                     path_mapping[original_texture_path] = original_texture_path
     
-    # Debug: In số lượng mappings
-    print(f"[DEBUG] Tổng số file gốc: {len(all_original_files)}")
-    print(f"[DEBUG] Tổng số file hiện tại: {len(current_files)}")
-    print(f"[DEBUG] Tổng số mappings tạo được: {len(path_mapping)}")
-    
-    # Debug: In một vài mapping mẫu
-    count = 0
-    for old_path, new_path in path_mapping.items():
-        if count < 5:
-            print(f"[DEBUG] {old_path} -> {new_path}")
-            count += 1
-    
     # Bước 7: Cập nhật item_texture.json và terrain_texture.json
     if os.path.exists(item_texture_path):
         item_data = texture_data_combined.get('item', {})
@@ -352,19 +340,6 @@ def randomize_item_textures():
             except Exception as e:
                 # Bỏ qua lỗi và tiếp tục xử lý file khác
                 pass
-    
-    # Debug attachables
-    print(f"[DEBUG] Tổng texture paths trong attachables: {total_texture_paths}")
-    print(f"[DEBUG] Texture paths đã cập nhật: {updated_texture_paths}")
-    print(f"[DEBUG] Attachable files đã cập nhật: {updated_count}")
-    print(f"[DEBUG] Paths thiếu file: {len(missing_files_attachables)}")
-    print(f"[DEBUG] Paths không có mapping: {len(unmapped_paths)}")
-    
-    # In một vài unmapped paths để debug
-    if unmapped_paths:
-        print("[DEBUG] Một vài unmapped paths:")
-        for i, path in enumerate(unmapped_paths[:5]):
-            print(f"[DEBUG] {path}")
     
     return path_mapping  # Return mapping để có thể sử dụng nếu cần
 
