@@ -169,6 +169,11 @@ def randomize_item_textures():
     
     # Thu thập tất cả file PNG hiện tại sau khi xáo trộn và rename
     current_files = {}  # old_rel_path_no_ext -> current_abs_path
+    reverse_file_mapping = {}  # new_name -> old_rel_path_no_ext (để tra ngược)
+    
+    # Tạo reverse mapping
+    for old_rel_path, new_name in file_mapping.items():
+        reverse_file_mapping[new_name] = old_rel_path
     
     for root, dirs, files in os.walk(textures_root):
         rel_root = os.path.relpath(root, textures_root)
@@ -178,14 +183,30 @@ def randomize_item_textures():
             for file in files:
                 if file.endswith('.png') and file not in ['item_texture.json', 'terrain_texture.json']:
                     abs_path = os.path.join(root, file)
+                    file_base = os.path.splitext(file)[0]
                     
                     # Tìm tên gốc từ file_mapping
-                    file_base = os.path.splitext(file)[0]
-                    for old_rel_path, new_name in file_mapping.items():
+                    found_original = False
+                    for new_name, old_rel_path in reverse_file_mapping.items():
                         # Kiểm tra nếu file hiện tại khớp với new_name (có thể có suffix _1, _2)
                         if file_base == new_name or file_base.startswith(new_name + "_"):
                             current_files[old_rel_path] = abs_path
+                            found_original = True
                             break
+                    
+                    # Nếu không tìm thấy trong reverse_file_mapping, có thể là file đã bị xáo trộn
+                    # và đổi tên với suffix, cần tìm bằng cách khác
+                    if not found_original:
+                        # Thử tìm bằng cách loại bỏ suffix _số
+                        base_without_suffix = file_base
+                        if '_' in file_base:
+                            parts = file_base.split('_')
+                            if parts[-1].isdigit():  # Nếu phần cuối là số
+                                base_without_suffix = '_'.join(parts[:-1])
+                        
+                        if base_without_suffix in reverse_file_mapping:
+                            old_rel_path = reverse_file_mapping[base_without_suffix]
+                            current_files[old_rel_path] = abs_path
     
     # Tạo path mapping từ đường dẫn cũ sang đường dẫn mới
     for old_rel_path, current_abs_path in current_files.items():
