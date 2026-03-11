@@ -1164,8 +1164,15 @@ async function main() {
             console.log('CI environment detected, installing Chrome...');
             try {
                 const { execSync } = await import('child_process');
-                execSync('npx puppeteer browsers install chrome-headless-shell', { stdio: 'inherit' });
-                console.log('Chrome installed successfully');
+                // Try installing regular chrome first, then fallback to headless shell
+                try {
+                    execSync('npx puppeteer browsers install chrome', { stdio: 'inherit' });
+                    console.log('Chrome installed successfully');
+                } catch (chromeErr) {
+                    console.log('Regular Chrome failed, trying headless shell...');
+                    execSync('npx puppeteer browsers install chrome-headless-shell', { stdio: 'inherit' });
+                    console.log('Chrome headless shell installed successfully');
+                }
             } catch (installErr) {
                 console.error('Failed to install Chrome:', installErr.message);
                 console.log('Skipping icon generation due to missing Chrome');
@@ -1173,8 +1180,41 @@ async function main() {
             }
         }
         
+        // Try to find Chrome executable path
+        let executablePath;
+        if (process.env.CI) {
+            // In CI, try common Chrome paths
+            const commonPaths = [
+                '/usr/bin/google-chrome',
+                '/usr/bin/google-chrome-stable',
+                '/usr/bin/chromium-browser',
+                '/usr/bin/chromium'
+            ];
+            
+            const fs = await import('fs');
+            for (const path of commonPaths) {
+                if (fs.default.existsSync(path)) {
+                    executablePath = path;
+                    console.log('Found system Chrome at:', executablePath);
+                    break;
+                }
+            }
+        }
+        
+        if (!executablePath) {
+            try {
+                const puppeteerModule = await import('puppeteer');
+                executablePath = puppeteerModule.default.executablePath();
+                console.log('Using Puppeteer Chrome at:', executablePath);
+            } catch (pathError) {
+                console.log('Could not determine Chrome path, using default');
+                executablePath = undefined;
+            }
+        }
+        
         const browser = await puppeteer.launch({
             headless: 'shell',
+            executablePath: executablePath,
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox', 
