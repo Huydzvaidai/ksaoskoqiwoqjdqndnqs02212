@@ -390,9 +390,6 @@ def rename_json_files():
                 os.rename(old_dir_path, new_dir_path)
         
         # Bước 3: Xáo trộn file JSON
-        # Thu thập lại tất cả file JSON sau khi rename
-        json_files_after_rename = list(glob.glob(f"{directory}/**/*.json", recursive=True))
-        
         if directory in dirs_need_subfolders:
             # Xử lý đặc biệt cho animations: rename TẤT CẢ thư mục bên trong
             if directory == "staging/target/rp/animations":
@@ -410,6 +407,9 @@ def rename_json_files():
                         new_folder_name = random_folder_name()
                         new_folder_path = os.path.join(os.path.dirname(old_folder_path), new_folder_name)
                         os.rename(old_folder_path, new_folder_path)
+            
+            # Thu thập lại tất cả file JSON SAU KHI rename folders
+            json_files_after_rename = list(glob.glob(f"{directory}/**/*.json", recursive=True))
             
             # Tạo 2-5 thư mục con ngẫu nhiên
             num_folders = random.randint(2, 5)
