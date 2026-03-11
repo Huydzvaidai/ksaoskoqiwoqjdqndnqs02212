@@ -394,6 +394,24 @@ def rename_json_files():
         json_files_after_rename = list(glob.glob(f"{directory}/**/*.json", recursive=True))
         
         if directory in dirs_need_subfolders:
+            # Xử lý đặc biệt cho animations: rename các thư mục con có sẵn trước
+            if directory == "staging/target/rp/animations":
+                # Thu thập tất cả thư mục con có sẵn (từ sâu nhất lên)
+                existing_folders = []
+                for root, dirs, files in os.walk(directory, topdown=False):
+                    if root != directory:  # Bỏ qua thư mục gốc animations
+                        for dir_name in dirs:
+                            folder_path = os.path.join(root, dir_name)
+                            existing_folders.append(folder_path)
+                
+                # Rename các thư mục con có sẵn (từ sâu nhất lên để tránh conflict)
+                existing_folders.sort(key=lambda x: x.count(os.sep), reverse=True)
+                for old_folder_path in existing_folders:
+                    if os.path.exists(old_folder_path):
+                        new_folder_name = random_folder_name()
+                        new_folder_path = os.path.join(os.path.dirname(old_folder_path), new_folder_name)
+                        os.rename(old_folder_path, new_folder_path)
+            
             # Tạo 2-5 thư mục con ngẫu nhiên
             num_folders = random.randint(2, 5)
             created_dirs = []
@@ -404,7 +422,7 @@ def rename_json_files():
                 os.makedirs(folder_path, exist_ok=True)
                 created_dirs.append(folder_path)
             
-            # Thu thập tất cả thư mục con (bao gồm cả thư mục vừa tạo và thư mục có sẵn)
+            # Thu thập tất cả thư mục con (bao gồm cả thư mục vừa tạo và thư mục có sẵn đã rename)
             all_dirs = created_dirs.copy()
             for root, dirs, files in os.walk(directory):
                 if root != directory:
