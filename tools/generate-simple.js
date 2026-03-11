@@ -424,23 +424,14 @@ async function generateIcon(page, modelPath, outputPath) {
     try {
         const modelData = JSON.parse(fs.readFileSync(modelPath, 'utf-8'));
         
-        console.log(`\n=== DEBUG: Processing ${modelPath} ===`);
-        console.log('Has elements:', !!modelData.elements);
-        console.log('Elements count:', modelData.elements?.length || 0);
-        console.log('Has textures:', !!modelData.textures);
-        console.log('Texture keys:', Object.keys(modelData.textures || {}));
-        
         // Check if this is a 2D flat model (generated item)
         const is2DModel = !modelData.elements && modelData.textures && (modelData.textures.layer0 || modelData.textures.layer1);
         
         if (is2DModel) {
-            console.log('SKIP: 2D flat model detected');
             return false;
         }
         
         const textures = findTextures(modelPath, modelData);
-        console.log('Textures found:', Object.keys(textures).length);
-        console.log('Texture paths:', textures);
         
         // Load textures as base64
         const textureData = {};
@@ -451,13 +442,10 @@ async function generateIcon(page, modelPath, outputPath) {
                 const buffer = fs.readFileSync(texPath);
                 const base64 = buffer.toString('base64');
                 textureData[key] = `data:image/png;base64,${base64}`;
-                console.log(`Loaded texture ${key}: ${texPath}`);
             } catch (e) {
                 console.error(`Failed to read texture ${key}:`, e.message);
             }
         }
-        
-        console.log('Texture data loaded:', Object.keys(textureData).length);
         
         // Second pass: resolve texture references like "#1"
         for (const [key, value] of Object.entries(modelData.textures || {})) {
@@ -526,11 +514,8 @@ async function generateIcon(page, modelPath, outputPath) {
             try {
                 // Validate model has elements
                 if (!modelData.elements || !Array.isArray(modelData.elements) || modelData.elements.length === 0) {
-                    console.log('ERROR: Model has no elements array');
                     return {error: 'Model has no elements array'};
                 }
-                
-                console.log('Browser: Model validation passed, elements:', modelData.elements.length);
                 
                 if (window.currentMesh) {
                     window.scene.remove(window.currentMesh);
@@ -545,8 +530,6 @@ async function generateIcon(page, modelPath, outputPath) {
                 const geometry = new window.MinecraftModelGeometry(modelData);
                 const materials = [];
                 const loader = new window.THREE.TextureLoader();
-                
-                console.log('Browser: Geometry created successfully');
                 
                 // Group 0 is always the fallback material
                 materials.push(new window.THREE.MeshBasicMaterial({color: 0xff00ff, side: window.THREE.DoubleSide}));
@@ -613,8 +596,6 @@ async function generateIcon(page, modelPath, outputPath) {
                 const mesh = new window.THREE.Mesh(geometry, materials);
                 window.scene.add(mesh);
                 window.currentMesh = mesh;
-                
-                console.log('Browser: Mesh created and added to scene');
                 
                 await new Promise(resolve => setTimeout(resolve, 100));
                 
@@ -754,17 +735,13 @@ async function generateIcon(page, modelPath, outputPath) {
                 
                 const dataUrl = window.renderer.domElement.toDataURL('image/png');
                 
-                console.log('Browser: Render completed successfully');
-                
                 return {success: true, dataUrl};
             } catch (err) {
-                console.log('Browser ERROR:', err.message);
                 return {error: err.message};
             }
         }, modelData);
         
         if (result.error) {
-            console.log('FAILED: Browser evaluation error:', result.error);
             return false;
         }
         
@@ -781,10 +758,8 @@ async function generateIcon(page, modelPath, outputPath) {
             })
             .toFile(outputPath);
         
-        console.log('SUCCESS: Icon saved to', outputPath);
         return true;
     } catch (error) {
-        console.log('FAILED: Exception:', error.message);
         return false;
     }
 }
@@ -1140,7 +1115,6 @@ async function main() {
     }
     
     if (!assetsPath) {
-        console.log('No assets path found, exiting...');
         process.exit(1);
     }
     
@@ -1148,10 +1122,8 @@ async function main() {
     if (!fs.existsSync(CONFIG.outputDir)) fs.mkdirSync(CONFIG.outputDir, {recursive: true});
     
     const modelFiles = findModelFiles(CONFIG.assetsDir);
-    console.log(`Found ${modelFiles.length} model files to process`);
     
     if (modelFiles.length === 0) {
-        console.log('No model files found, exiting...');
         return;
     }
     
@@ -1161,21 +1133,15 @@ async function main() {
     try {
         // Install Chrome first if in CI environment
         if (process.env.CI) {
-            console.log('CI environment detected, installing Chrome...');
             try {
                 const { execSync } = await import('child_process');
                 // Try installing regular chrome first, then fallback to headless shell
                 try {
                     execSync('npx puppeteer browsers install chrome', { stdio: 'inherit' });
-                    console.log('Chrome installed successfully');
                 } catch (chromeErr) {
-                    console.log('Regular Chrome failed, trying headless shell...');
                     execSync('npx puppeteer browsers install chrome-headless-shell', { stdio: 'inherit' });
-                    console.log('Chrome headless shell installed successfully');
                 }
             } catch (installErr) {
-                console.error('Failed to install Chrome:', installErr.message);
-                console.log('Skipping icon generation due to missing Chrome');
                 return;
             }
         }
@@ -1195,7 +1161,6 @@ async function main() {
             for (const path of commonPaths) {
                 if (fs.default.existsSync(path)) {
                     executablePath = path;
-                    console.log('Found system Chrome at:', executablePath);
                     break;
                 }
             }
@@ -1205,9 +1170,7 @@ async function main() {
             try {
                 const puppeteerModule = await import('puppeteer');
                 executablePath = puppeteerModule.default.executablePath();
-                console.log('Using Puppeteer Chrome at:', executablePath);
             } catch (pathError) {
-                console.log('Could not determine Chrome path, using default');
                 executablePath = undefined;
             }
         }
@@ -1281,8 +1244,6 @@ async function main() {
                 if (result) success++;
                 else fail++;
             }
-            
-            console.log(`Batch completed: ${success} success, ${fail} failed`);
         }
         
         // Create a dedicated 64x64 page for block icons
@@ -1304,12 +1265,8 @@ async function main() {
         
         await browser.close();
         
-        console.log(`\n=== FINAL RESULTS ===`);
-        console.log(`3D Icons: ${success} success, ${fail} failed`);
-        
     } catch (browserError) {
-        console.error('Browser error:', browserError.message);
-        console.log('Skipping icon generation due to browser issues');
+        // Silent fail
     } finally {
         server.close();
     }
