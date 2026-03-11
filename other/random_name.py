@@ -394,19 +394,18 @@ def rename_json_files():
         json_files_after_rename = list(glob.glob(f"{directory}/**/*.json", recursive=True))
         
         if directory in dirs_need_subfolders:
-            # Xử lý đặc biệt cho animations: rename các thư mục con có sẵn trước
+            # Xử lý đặc biệt cho animations: rename TẤT CẢ thư mục bên trong
             if directory == "staging/target/rp/animations":
-                # Thu thập tất cả thư mục con có sẵn (từ sâu nhất lên)
-                existing_folders = []
+                # Thu thập TẤT CẢ thư mục (bao gồm cả thư mục con lồng nhau)
+                all_folders = []
                 for root, dirs, files in os.walk(directory, topdown=False):
-                    if root != directory:  # Bỏ qua thư mục gốc animations
-                        for dir_name in dirs:
-                            folder_path = os.path.join(root, dir_name)
-                            existing_folders.append(folder_path)
+                    for dir_name in dirs:
+                        folder_path = os.path.join(root, dir_name)
+                        all_folders.append(folder_path)
                 
-                # Rename các thư mục con có sẵn (từ sâu nhất lên để tránh conflict)
-                existing_folders.sort(key=lambda x: x.count(os.sep), reverse=True)
-                for old_folder_path in existing_folders:
+                # Rename TẤT CẢ thư mục (từ sâu nhất lên để tránh conflict)
+                all_folders.sort(key=lambda x: x.count(os.sep), reverse=True)
+                for old_folder_path in all_folders:
                     if os.path.exists(old_folder_path):
                         new_folder_name = random_folder_name()
                         new_folder_path = os.path.join(os.path.dirname(old_folder_path), new_folder_name)
@@ -435,7 +434,7 @@ def rename_json_files():
             if not all_dirs:
                 all_dirs = created_dirs
             
-            # Xáo trộn 100% file vào các thư mục con
+            # Xáo trộn 100% file JSON vào TẤT CẢ thư mục (bao gồm cả lồng nhau)
             for json_file in json_files_after_rename:
                 if all_dirs:
                     target_dir = random.choice(all_dirs)
