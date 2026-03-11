@@ -1159,13 +1159,9 @@ async function main() {
     const server = await createServer(html);
     
     try {
-        // Try to install Chrome if not found
-        try {
-            const puppeteer = await import('puppeteer');
-            console.log('Attempting to install Chrome...');
-            await puppeteer.default.executablePath();
-        } catch (installError) {
-            console.log('Chrome not found, attempting to install...');
+        // Install Chrome first if in CI environment
+        if (process.env.CI) {
+            console.log('CI environment detected, installing Chrome...');
             try {
                 const { execSync } = await import('child_process');
                 execSync('npx puppeteer browsers install chrome-headless-shell', { stdio: 'inherit' });
