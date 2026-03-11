@@ -1140,6 +1140,7 @@ async function main() {
     }
     
     if (!assetsPath) {
+        console.log('No assets path found, exiting...');
         process.exit(1);
     }
     
@@ -1147,11 +1148,35 @@ async function main() {
     if (!fs.existsSync(CONFIG.outputDir)) fs.mkdirSync(CONFIG.outputDir, {recursive: true});
     
     const modelFiles = findModelFiles(CONFIG.assetsDir);
+    console.log(`Found ${modelFiles.length} model files to process`);
+    
+    if (modelFiles.length === 0) {
+        console.log('No model files found, exiting...');
+        return;
+    }
     
     const html = createHTML();
     const server = await createServer(html);
     
     try {
+        // Try to install Chrome if not found
+        try {
+            const puppeteer = await import('puppeteer');
+            console.log('Attempting to install Chrome...');
+            await puppeteer.default.executablePath();
+        } catch (installError) {
+            console.log('Chrome not found, attempting to install...');
+            try {
+                const { execSync } = await import('child_process');
+                execSync('npx puppeteer browsers install chrome-headless-shell', { stdio: 'inherit' });
+                console.log('Chrome installed successfully');
+            } catch (installErr) {
+                console.error('Failed to install Chrome:', installErr.message);
+                console.log('Skipping icon generation due to missing Chrome');
+                return;
+            }
+        }
+        
         const browser = await puppeteer.launch({
             headless: 'shell',
             args: [
@@ -1243,6 +1268,12 @@ async function main() {
         
         await browser.close();
         
+        console.log(`\n=== FINAL RESULTS ===`);
+        console.log(`3D Icons: ${success} success, ${fail} failed`);
+        
+    } catch (browserError) {
+        console.error('Browser error:', browserError.message);
+        console.log('Skipping icon generation due to browser issues');
     } finally {
         server.close();
     }
